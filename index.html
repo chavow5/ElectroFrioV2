@@ -14,9 +14,14 @@
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=3">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png?v=3">
     <link rel="shortcut icon" href="assets/icon.png?v=3" type="image/png">
-    <!-- Google Fonts -->
+    <!-- Resource Hints & DNS Prefetch para Carga Inmediata en Celulares -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link rel="preconnect" href="https://firestore.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
         rel="stylesheet">
@@ -434,7 +439,7 @@
                 <!-- 1. DASHBOARD -->
                 <!-- 1. DASHBOARD (MÓDULO INDEPENDIENTE) -->
                 <div id="mod-dashboard" class="page-content">
-                    <iframe data-src="modulos/dashboard.html" src="modulos/dashboard.html" style="width: 100%; height: calc(100vh - 72px); border: none;"></iframe>
+                    <iframe data-src="modulos/dashboard.html" loading="lazy" style="width: 100%; height: calc(100vh - 72px); border: none;"></iframe>
                 </div>
 
 <div id="mod-clientes" class="page-content hidden">
@@ -529,6 +534,50 @@
 
             </div>
         </main>
+
+        <!-- BARRA DE NAVEGACIÓN INFERIOR MÓVIL (ACCESO RÁPIDO PARA TÉCNICOS EN CELULAR) -->
+        <nav class="mobile-bottom-nav" id="mobileBottomNav">
+            <button type="button" class="bottom-nav-item" data-module="fichajes" onclick="switchTab('fichajes')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Fichaje</span>
+            </button>
+            <button type="button" class="bottom-nav-item" data-module="ordenes" onclick="switchTab('ordenes')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Órdenes</span>
+            </button>
+            <button type="button" class="bottom-nav-item" data-module="tareas" onclick="switchTab('tareas')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                <span>Tareas</span>
+            </button>
+            <button type="button" class="bottom-nav-item" data-module="dashboard" onclick="switchTab('dashboard')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="9"></rect>
+                    <rect x="14" y="3" width="7" height="5"></rect>
+                    <rect x="14" y="12" width="7" height="9"></rect>
+                    <rect x="3" y="16" width="7" height="5"></rect>
+                </svg>
+                <span>Panel</span>
+            </button>
+            <button type="button" class="bottom-nav-item" id="btnBottomMoreMenu" onclick="toggleMobileSidebar()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+                <span>Más</span>
+            </button>
+        </nav>
     </div>
 
     
@@ -853,6 +902,15 @@
                 }
             });
 
+            // Sincronizar barra de navegación inferior móvil
+            document.querySelectorAll('.bottom-nav-item[data-module]').forEach(item => {
+                if (item.getAttribute('data-module') === moduleName) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
             let hasActiveIframe = false;
             pages.forEach(page => {
                 if (page.id === `mod-${moduleName}`) {
@@ -910,6 +968,13 @@
         };
 
         window.switchPage = window.switchTab;
+
+        window.toggleMobileSidebar = function() {
+            if (sidebar) {
+                sidebar.classList.toggle('open');
+                if (sidebarBackdrop) sidebarBackdrop.classList.toggle('show');
+            }
+        };
 
         // Delegadores de apertura directa hacia módulos en iframes
         window.openOrderDetailsModal = function(orderId) {
@@ -1075,10 +1140,12 @@
                     mensaje.style.color = '#4cd964';
                     mensaje.textContent = '¡Ingreso exitoso! Redirigiendo...';
 
+                    const defMod1 = (newUserData.role === 'Colaborador') ? 'fichajes' : 'dashboard';
+                    const targetMod1 = localStorage.getItem('electrofrio_active_module') || defMod1;
                     setTimeout(() => {
                         showApp();
-                        switchTab('dashboard');
-                    }, 800);
+                        switchTab(targetMod1);
+                    }, 100);
                 } else {
                     const localMatch = colaboradores.find(c => c.username && c.username.toLowerCase() === usuarioInput);
                     const name = localMatch ? localMatch.name : usuarioInput;
@@ -1150,10 +1217,12 @@
                         mensaje.style.color = '#4cd964';
                         mensaje.textContent = '¡Cuenta inicializada e ingreso exitoso!';
 
+                        const defMod2 = (defaultMatch.role === 'Colaborador') ? 'fichajes' : 'dashboard';
+                        const targetMod2 = localStorage.getItem('electrofrio_active_module') || defMod2;
                         setTimeout(() => {
                             showApp();
-                            switchTab('dashboard');
-                        }, 800);
+                            switchTab(targetMod2);
+                        }, 100);
                     } catch (createError) {
                         console.error("Error al registrar cuenta por defecto:", createError);
                         mensaje.style.color = '#ff3b30';
@@ -1200,13 +1269,15 @@
             });
         });
 
-        // 9. CICLO DE VIDA DE INICIALIZACIÓN
+        // 9. CICLO DE VIDA DE INICIALIZACIÓN ULTRARRÁPIDO (OFFLINE-FIRST)
         window.addEventListener('DOMContentLoaded', () => {
             initLocalStorage();
 
             if (localStorage.getItem('electrofrio_session') === 'true') {
                 showApp();
-                const lastModule = localStorage.getItem('electrofrio_active_module') || 'dashboard';
+                const role = localStorage.getItem('electrofrio_role') || 'Colaborador';
+                const defaultMod = (role === 'Colaborador') ? 'fichajes' : 'dashboard';
+                const lastModule = localStorage.getItem('electrofrio_active_module') || defaultMod;
                 switchTab(lastModule);
             } else {
                 hideApp();
@@ -1219,6 +1290,7 @@
                     const doc = await db.collection('usuarios').doc(user.uid).get();
                     if (doc.exists) {
                         const userData = doc.data();
+                        const prevRole = localStorage.getItem('electrofrio_role');
                         localStorage.setItem('electrofrio_session', 'true');
                         localStorage.setItem('electrofrio_user', userData.username);
                         localStorage.setItem('electrofrio_role', userData.role);
@@ -1226,9 +1298,17 @@
                         localStorage.setItem('electrofrio_uid', user.uid);
                         localStorage.setItem('electrofrio_premium', userData.premium ? 'true' : 'false');
 
-                        showApp();
-                        const lastModule = localStorage.getItem('electrofrio_active_module') || 'dashboard';
-                        switchTab(lastModule);
+                        configureRoleUI();
+
+                        // Si la app aún no estaba visible, inicializarla
+                        if (loginSection && !loginSection.classList.contains('hidden')) {
+                            showApp();
+                            const defaultMod = (userData.role === 'Colaborador') ? 'fichajes' : 'dashboard';
+                            const targetMod = localStorage.getItem('electrofrio_active_module') || defaultMod;
+                            switchTab(targetMod);
+                        } else if (prevRole !== userData.role) {
+                            configureRoleUI();
+                        }
 
                         if (userData.role === 'Administrador') {
                             setTimeout(() => {
