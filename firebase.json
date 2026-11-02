@@ -19,6 +19,11 @@
         "**/*.py",
         "historial.csv",
         "historial_parsed.json",
+        "datos/historial.csv",
+        "datos/historial_parsed.json",
+        "index.html.bak_modular",
+        "docs/**",
+        "scripts/**",
         "backups/**",
         "scratch/**",
         "resguardo gigs/**",
@@ -38,13 +43,19 @@
           ]
         },
         {
-          "source": "/index.html",
+          "source": "**/*.html",
           "headers": [
             { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
           ]
         },
         {
-          "source": "/historial_parsed.js",
+          "source": "**/*.@(js|css)",
+          "headers": [
+            { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          ]
+        },
+        {
+          "source": "/datos/historial_parsed.js",
           "headers": [
             { "key": "Cache-Control", "value": "public, max-age=604800, stale-while-revalidate=86400" }
           ]
@@ -54,16 +65,10 @@
           "headers": [
             { "key": "Cache-Control", "value": "public, max-age=604800, immutable" }
           ]
-        },
-        {
-          "source": "**/*.@(js|css)",
-          "headers": [
-            { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=3600" }
-          ]
         }
       ],
       "predeploy": [
-        "powershell -NoProfile -ExecutionPolicy Bypass -File respaldar.ps1"
+        "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/respaldar.ps1"
       ],
       "rewrites": [
         {
