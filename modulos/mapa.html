@@ -15,9 +15,10 @@
     <!-- Estilos compartidos del sistema -->
     <link rel="stylesheet" href="../css/style.css">
 
-    <!-- Leaflet JS (Mapas) -->
+    <!-- Leaflet JS (Mapas) - Pausado temporalmente para rendimiento
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    -->
 
     <!-- Firebase SDK (Compat v9) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -383,6 +384,47 @@
             <div class="map-icon">🗺️</div>
             <div>
                 <h1 class="map-title">
+                    Mapa de Técnicos
+                    <span style="font-size: 11px; font-weight: 700; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 2px 8px; border-radius: 12px; margin-left: 6px;">
+                        🚧 En Desarrollo
+                    </span>
+                </h1>
+                <p class="map-subtitle">Módulo de monitoreo satelital en preparación</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Pantalla informativa de "En Construcción" (0 consumo de recursos) -->
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px;">
+        <div style="background: var(--bg-card, #16243d); border: 1px solid var(--border-color, #1e3656); border-radius: 16px; padding: 40px 30px; max-width: 540px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <div style="width: 76px; height: 76px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); border: 2px solid rgba(245, 158, 11, 0.4); color: #fbbf24; font-size: 34px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                🚧
+            </div>
+            <h2 style="margin: 0 0 10px 0; font-size: 22px; font-family: 'Outfit', sans-serif; color: #ffffff;">
+                Estamos Trabajando en este Módulo
+            </h2>
+            <div style="display: inline-block; background: rgba(245, 158, 11, 0.18); color: #fbbf24; font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 18px; border: 1px solid rgba(245, 158, 11, 0.35);">
+                Próximamente
+            </div>
+            <p style="color: var(--text-secondary, #94a3b8); font-size: 14px; line-height: 1.6; margin: 0 0 24px 0;">
+                El <strong>Mapa de Técnicos y Geolocalización</strong> está pausado temporalmente para optimizar al máximo la velocidad del sistema. Estará disponible en una próxima etapa.
+            </p>
+            <div style="background: rgba(0, 180, 216, 0.08); border: 1px dashed rgba(0, 180, 216, 0.3); border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #38bdf8;">
+                ⚡ <em>Mapas, scripts pesados y solicitudes de red desactivadas para máximo rendimiento.</em>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+    ========================================================================
+    CÓDIGO ORIGINAL DEL MAPA PAUSADO TEMPORALMENTE (Listo para reactivar)
+    ========================================================================
+    <!-- Header original comentado -->
+    <header class="map-header" style="display: none;">
+        <div class="map-title-box">
+            <div class="map-icon">🗺️</div>
+            <div>
+                <h1 class="map-title">
                     Ubicación en Tiempo Real
                     <span id="badgeActiveCount" style="font-size: 12px; font-weight: 700; background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 8px; border-radius: 12px;">
                         0 activos
@@ -468,13 +510,18 @@
             mapInstance = L.map('techMap', {
                 center: DEFAULT_CENTER,
                 zoom: DEFAULT_ZOOM,
-                zoomControl: true
+                zoomControl: true,
+                preferCanvas: true,        // Aceleración por Canvas (evita sobrecargar el DOM y la GPU)
+                updateWhenIdle: true,      // Carga cuadrantes al soltar para evitar tirones de lag
+                updateWhenZooming: false,
+                wheelDebounceTime: 60      // Suaviza el zoom de la rueda del mouse
             });
 
-            // Capa de OpenStreetMap estándar
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            // Servidores CDN de alta velocidad de CartoDB (mucho más rápidos en Sudamérica que OSM estándar)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 maxZoom: 19,
-                attribution: '&copy; OpenStreetMap contributors'
+                subdomains: 'abcd',
+                attribution: '&copy; OpenStreetMap &copy; CARTO'
             }).addTo(mapInstance);
 
             // Ajustar tamaño tras render inicial
@@ -872,5 +919,6 @@
             startRealtimeListeners(); // Trae el snapshot inicial de colaboradores una sola vez
         });
     </script>
+    -->
 </body>
 </html>
