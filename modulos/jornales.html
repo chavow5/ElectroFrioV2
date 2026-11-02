@@ -539,6 +539,35 @@
             flex: 1;
         }
 
+        /* Estilos de Impresión Directa */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+            }
+            .header-bar, .week-selector-card, .toolbar-actions, #btnCalcularJornales, .jornales-row-check, #jornalesSelectAll, .btn-action-icon, .btn-status-badge {
+                display: none !important;
+            }
+            .table-container {
+                background: #ffffff !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .custom-table {
+                color: #111111 !important;
+            }
+            .custom-table th {
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            .custom-table td {
+                border: 1px solid #e2e8f0 !important;
+                color: #111111 !important;
+            }
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .filter-grid {
@@ -698,15 +727,9 @@
                         </svg>
                         Exportar Excel
                     </button>
-                    <button type="button" id="btnGenerarPDF" class="btn-action-pdf" onclick="generateJornalesPDF()" title="Generar e imprimir informe PDF para el período">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
-                            <polyline points="10 9 9 9 8 9"/>
-                        </svg>
-                        Generar Informe PDF
+                    <button type="button" id="btnImprimirJornales" class="btn-action-pdf" onclick="printJornalesReport()" title="Imprimir informe en A4 con logo de ElectroFrío y recibos de firma">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        Imprimir Informe
                     </button>
                 </div>
             </div>
@@ -764,6 +787,15 @@
                     </table>
                 </div>
                 <div id="modalFichadasSummary" style="margin-top: 15px; text-align: right; font-weight: 700; color: #ffffff;"></div>
+            </div>
+            <div style="padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(0,0,0,0.15);">
+                <button type="button" class="btn-action-pdf" onclick="printIndividualCollabJornal()" style="font-size: 12px; padding: 7px 14px; background: #0284c7; color: #fff;" title="Imprimir comprobante individual de fichadas de este colaborador">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    <span>🖨️ Imprimir Ficha Individual</span>
+                </button>
+                <button type="button" onclick="closeModalFichadas()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); color: #fff; padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                    Cerrar
+                </button>
             </div>
         </div>
     </div>
@@ -1120,7 +1152,33 @@
                 }
             }
 
-            return results;
+            // Deduplicación preventiva de fichajes para cálculo de jornales
+            const cleanResults = [];
+            const sortedResults = [...results].sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+            for (const item of sortedResults) {
+                if (!item) continue;
+                const iName = (item.name || item.username || item.colaborador || '').trim().toLowerCase();
+                const iType = (item.type || '').trim();
+                const iDate = item.date || '';
+                const iTimeMs = item.timestamp ? new Date(item.timestamp).getTime() : 0;
+
+                const isDup = cleanResults.some(s => {
+                    const sName = (s.name || s.username || s.colaborador || '').trim().toLowerCase();
+                    const sType = (s.type || '').trim();
+                    const sDate = s.date || '';
+                    const sTimeMs = s.timestamp ? new Date(s.timestamp).getTime() : 0;
+                    if (iName !== sName || iType !== sType) return false;
+                    const sameDay = iDate === sDate || (item.date && s.date && item.date.slice(0, 10) === s.date.slice(0, 10));
+                    if (sameDay) {
+                        if (iTimeMs && sTimeMs && Math.abs(iTimeMs - sTimeMs) < 180000) return true;
+                        if (item.time && s.time && item.time === s.time) return true;
+                    }
+                    return false;
+                });
+                if (!isDup) cleanResults.push(item);
+            }
+
+            return cleanResults;
         }
 
         // Helper seguro para parsear fecha/hora de cualquier fichaje
@@ -1340,7 +1398,9 @@
         }
 
         // 9. MODAL DETALLE DE FICHADAS
+        let currentModalCollabIndex = null;
         window.openModalFichadas = function(index) {
+            currentModalCollabIndex = index;
             const item = calculatedJornales[index];
             if (!item) {
                 console.warn("No se encontró el colaborador en el índice:", index);
@@ -1415,6 +1475,571 @@
                 modal.style.pointerEvents = 'none';
             }
         };
+
+        // 10. INFORMES IMPRESOS Y PDF OFICIALES CON LOGO ELECTROFRÍO
+        function printJornalesReport() {
+            const picker = document.getElementById('jornalesWeekPicker');
+            if (!picker || !picker.value) {
+                alert("Por favor selecciona una semana para generar el informe.");
+                return;
+            }
+
+            const weekVal = picker.value;
+            let rowChecks = document.querySelectorAll('.jornales-row-check:checked');
+            if (rowChecks.length === 0) {
+                // Si ninguno está tildado, seleccionar todos automáticamente
+                const allChecks = document.querySelectorAll('.jornales-row-check');
+                allChecks.forEach(c => c.checked = true);
+                rowChecks = document.querySelectorAll('.jornales-row-check:checked');
+            }
+
+            if (rowChecks.length === 0) {
+                alert("No hay colaboradores para incluir en el informe.");
+                return;
+            }
+
+            const indices = Array.from(rowChecks).map(c => parseInt(c.getAttribute('data-index'), 10));
+            const selectedJornales = indices.map(idx => calculatedJornales[idx]).filter(Boolean);
+
+            const range = getDatesOfISOWeek(weekVal);
+            const startFormatted = formatDateShort(range.start);
+            const endFormatted = formatDateShort(range.end);
+            const cleanWeekVal = weekVal.split('-W')[1] || weekVal;
+
+            const now = new Date();
+            const emissionDate = now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const emissionTime = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+            const logoUrl = new URL("../assets/logo.png", window.location.href).href;
+
+            let grandTotalHours = 0;
+            let grandTotalSubtotal = 0;
+            let grandTotalBonuses = 0;
+            let grandTotalFinal = 0;
+
+            // 1. Tabla resumen consolidada de colaboradores
+            let summaryTableRows = '';
+            selectedJornales.forEach((item, idx) => {
+                const sub = (item.hours || 0) * (item.rate || 0);
+                const bon = item.bonus || 0;
+                const tot = sub + bon;
+
+                grandTotalHours += (item.hours || 0);
+                grandTotalSubtotal += sub;
+                grandTotalBonuses += bon;
+                grandTotalFinal += tot;
+
+                summaryTableRows += `
+                    <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                        <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; font-weight: 700; color: #64748b; font-size: 11px;">#${idx + 1}</td>
+                        <td style="padding: 7px 10px; border: 1px solid #cbd5e1; font-weight: 700; color: #0f172a; font-size: 12px;">${item.name}</td>
+                        <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: right; color: #475569; font-size: 11.5px;">${formatCurrency(item.rate)}</td>
+                        <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: right; font-weight: 700; color: #0284c7; font-size: 12px;">${(item.hours || 0).toFixed(2)} hs</td>
+                        <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: right; color: #334155; font-size: 11.5px;">${formatCurrency(sub)}</td>
+                        <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: right; color: #64748b; font-size: 11.5px;">${bon > 0 ? formatCurrency(bon) : '-'}</td>
+                        <td style="padding: 7px 10px; border: 1px solid #cbd5e1; text-align: right; font-weight: 800; color: #10b981; font-size: 12.5px;">${formatCurrency(tot)}</td>
+                        <td style="padding: 7px 10px; border: 1px solid #cbd5e1; width: 140px;"></td>
+                    </tr>
+                `;
+            });
+
+            // 2. Desglose detallado día a día por colaborador
+            let detailedSectionsHtml = '';
+            selectedJornales.forEach(item => {
+                const jornadas = getDetailedJornadas(item.name, range.start, range.end, fichajesPeriodo);
+                let daysRows = '';
+                let collabHs = 0;
+
+                if (jornadas.length === 0) {
+                    daysRows = `<tr><td colspan="4" style="padding: 8px 12px; text-align: center; color: #64748b; font-size: 11px;">Sin fichadas registradas en el período.</td></tr>`;
+                } else {
+                    jornadas.forEach((j, dIdx) => {
+                        collabHs += j.horas;
+                        daysRows += `
+                            <tr style="background: ${dIdx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+                                <td style="padding: 6px 10px; border: 1px solid #e2e8f0; font-size: 11px;">${j.fecha}</td>
+                                <td style="padding: 6px 10px; border: 1px solid #e2e8f0; text-align: center; font-size: 11px;">${j.entrada}</td>
+                                <td style="padding: 6px 10px; border: 1px solid #e2e8f0; text-align: center; font-size: 11px;">${j.salida}</td>
+                                <td style="padding: 6px 10px; border: 1px solid #e2e8f0; text-align: right; font-size: 11.5px; font-weight: 700; color: #0284c7;">${j.horas.toFixed(2)} hs</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                const subtot = collabHs * item.rate;
+                const tot = subtot + (item.bonus || 0);
+
+                detailedSectionsHtml += `
+                    <div style="page-break-inside: avoid; margin-bottom: 16px; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; background: #ffffff;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+                            <span style="font-weight: 800; font-size: 13px; color: #0f172a;">👤 ${item.name}</span>
+                            <span style="font-size: 12.5px; font-weight: 700;">
+                                <span style="color: #0284c7; margin-right: 14px;">${collabHs.toFixed(2)} hs</span>
+                                <span style="color: #10b981;">Total: ${formatCurrency(tot)}</span>
+                            </span>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                            <thead>
+                                <tr style="background: #f8fafc; color: #475569;">
+                                    <th style="padding: 6px 10px; text-align: left; border: 1px solid #e2e8f0;">Día / Fecha</th>
+                                    <th style="padding: 6px 10px; text-align: center; border: 1px solid #e2e8f0;">Entrada</th>
+                                    <th style="padding: 6px 10px; text-align: center; border: 1px solid #e2e8f0;">Salida</th>
+                                    <th style="padding: 6px 10px; text-align: right; border: 1px solid #e2e8f0;">Horas Diarias</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${daysRows}
+                            </tbody>
+                            <tfoot>
+                                <tr style="background: #f8fafc; font-weight: 700; font-size: 11px; color: #334155;">
+                                    <td colspan="3" style="padding: 6px 10px; text-align: right; border: 1px solid #e2e8f0;">Tarifa: ${formatCurrency(item.rate)}/h | Subtotal: ${formatCurrency(subtot)} ${item.bonus > 0 ? `| Bono: ${formatCurrency(item.bonus)}` : ''}</td>
+                                    <td style="padding: 6px 10px; text-align: right; border: 1px solid #e2e8f0; color: #10b981; font-weight: 800; font-size: 12px;">${formatCurrency(tot)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+            });
+
+            const printWindow = window.open("", "_blank", "width=1000,height=850");
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Liquidación de Jornales - Semana ${cleanWeekVal} - ElectroFrío</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 12mm 10mm; }
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            color: #111827;
+                            background: #ffffff;
+                            margin: 0;
+                            padding: 20px;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        .report-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-bottom: 2.5px solid #00bfff;
+                            padding-bottom: 12px;
+                            margin-bottom: 14px;
+                        }
+                        .header-left {
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                        }
+                        .logo-img {
+                            max-height: 55px;
+                            max-width: 190px;
+                            object-fit: contain;
+                        }
+                        .company-info h1 {
+                            margin: 0;
+                            font-size: 19px;
+                            color: #0b192c;
+                            font-weight: 800;
+                            letter-spacing: -0.3px;
+                        }
+                        .company-info p {
+                            margin: 2px 0 0 0;
+                            font-size: 11px;
+                            color: #6b7280;
+                        }
+                        .header-right {
+                            text-align: right;
+                        }
+                        .header-right .report-title {
+                            font-size: 16px;
+                            font-weight: 800;
+                            color: #0088cc;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+                        .header-right .report-meta {
+                            font-size: 11px;
+                            color: #4b5563;
+                            margin-top: 3px;
+                        }
+                        .kpi-grid {
+                            display: grid;
+                            grid-template-columns: repeat(4, 1fr);
+                            gap: 10px;
+                            margin-bottom: 16px;
+                        }
+                        .kpi-card {
+                            background: #f8fafc;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 6px;
+                            padding: 8px 10px;
+                            text-align: center;
+                        }
+                        .kpi-title {
+                            font-size: 10px;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            color: #64748b;
+                        }
+                        .kpi-val {
+                            font-size: 14.5px;
+                            font-weight: 800;
+                            margin-top: 3px;
+                        }
+                        .section-title {
+                            font-size: 12.5px;
+                            font-weight: 800;
+                            color: #0f172a;
+                            text-transform: uppercase;
+                            margin: 18px 0 8px 0;
+                            border-bottom: 1px solid #cbd5e1;
+                            padding-bottom: 4px;
+                            letter-spacing: 0.3px;
+                        }
+                        .table-report {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 18px;
+                            font-size: 11px;
+                        }
+                        .table-report th {
+                            background: #0f172a;
+                            color: #ffffff;
+                            padding: 7px 8px;
+                            font-size: 10.5px;
+                            font-weight: 700;
+                            border: 1px solid #0f172a;
+                            text-align: left;
+                        }
+                        .table-report tfoot td {
+                            background: #f1f5f9;
+                            font-weight: 800;
+                            border: 1.5px solid #cbd5e1;
+                            padding: 8px 8px;
+                            font-size: 11.5px;
+                        }
+                        .report-footer {
+                            margin-top: 25px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-end;
+                            font-size: 10px;
+                            color: #64748b;
+                            border-top: 1px solid #e2e8f0;
+                            padding-top: 12px;
+                        }
+                        .signature-box {
+                            text-align: center;
+                            width: 200px;
+                            border-top: 1px solid #111827;
+                            padding-top: 5px;
+                            font-weight: 700;
+                            color: #111827;
+                            font-size: 10.5px;
+                        }
+                        .no-print {
+                            position: sticky;
+                            top: 0;
+                            background: #ffffff;
+                            padding: 10px 0 15px 0;
+                            margin-bottom: 12px;
+                            border-bottom: 1px solid #e2e8f0;
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 10px;
+                            z-index: 100;
+                        }
+                        .btn-print {
+                            background: #00bfff;
+                            color: #000;
+                            font-weight: 700;
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            border: none;
+                            cursor: pointer;
+                            font-size: 13px;
+                        }
+                        .btn-close {
+                            background: #f1f5f9;
+                            color: #334155;
+                            font-weight: 600;
+                            padding: 8px 14px;
+                            border-radius: 6px;
+                            border: 1px solid #cbd5e1;
+                            cursor: pointer;
+                            font-size: 13px;
+                        }
+                        @media print {
+                            .no-print { display: none !important; }
+                            body { padding: 0 !important; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                            thead { display: table-header-group; }
+                            tfoot { display: table-footer-group; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print">
+                        <button class="btn-close" onclick="window.close()">✕ Cerrar</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar en PDF</button>
+                    </div>
+
+                    <div class="report-header">
+                        <div class="header-left">
+                            <img src="${logoUrl}" alt="ElectroFrío" class="logo-img" onerror="this.style.display='none'">
+                            <div class="company-info">
+                                <h1>ELECTROFRÍO</h1>
+                                <p>Servicio Técnico • Refrigeración y Climatización Comercial e Industrial</p>
+                            </div>
+                        </div>
+                        <div class="header-right">
+                            <div class="report-title">Liquidación de Jornales</div>
+                            <div class="report-meta">Semana: <strong>${cleanWeekVal}</strong> (${startFormatted} al ${endFormatted})</div>
+                            <div class="report-meta">Emisión: ${emissionDate} ${emissionTime} hs</div>
+                        </div>
+                    </div>
+
+                    <!-- Cuadro Resumen Ejecutivo -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-title">Total a Liquidar</div>
+                            <div class="kpi-val" style="color: #10b981;">${formatCurrency(grandTotalFinal)}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Total Horas Trabajadas</div>
+                            <div class="kpi-val" style="color: #0284c7;">${grandTotalHours.toFixed(2)} hs</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Colaboradores Incluidos</div>
+                            <div class="kpi-val" style="color: #334155;">${selectedJornales.length}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Bonos de Productividad</div>
+                            <div class="kpi-val" style="color: #f59e0b;">${formatCurrency(grandTotalBonuses)}</div>
+                        </div>
+                    </div>
+
+                    <!-- 1. Planilla Resumen Consolidada -->
+                    <div class="section-title">1. Planilla Resumen Consolidada para Liquidación</div>
+                    <table class="table-report">
+                        <thead>
+                            <tr>
+                                <th style="width: 30px; text-align: center;">Nº</th>
+                                <th>Colaborador</th>
+                                <th style="width: 90px; text-align: right;">Tarifa ($/h)</th>
+                                <th style="width: 80px; text-align: right;">Horas</th>
+                                <th style="width: 95px; text-align: right;">Subtotal</th>
+                                <th style="width: 80px; text-align: right;">Bono</th>
+                                <th style="width: 105px; text-align: right;">Total Liquidado</th>
+                                <th style="width: 130px; text-align: center;">Firma / Recibí</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${summaryTableRows}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="text-align: right;">TOTALES GENERALES:</td>
+                                <td style="text-align: right; color: #0284c7;">${grandTotalHours.toFixed(2)} hs</td>
+                                <td style="text-align: right;">${formatCurrency(grandTotalSubtotal)}</td>
+                                <td style="text-align: right;">${formatCurrency(grandTotalBonuses)}</td>
+                                <td style="text-align: right; color: #10b981;">${formatCurrency(grandTotalFinal)}</td>
+                                <td style="text-align: center;">${selectedJornales.length} Personal</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- 2. Detalle Diario de Fichadas -->
+                    <div class="section-title" style="margin-top: 25px;">2. Detalle Individual de Fichadas por Colaborador</div>
+                    <div>
+                        ${detailedSectionsHtml}
+                    </div>
+
+                    <div class="report-footer">
+                        <div>
+                            <div>Sistema de Gestión ElectroFrío V2 • Liquidación de Haberes y Jornales</div>
+                            <div style="font-size: 9px; color: #9ca3af; margin-top: 2px;">Comprobante de uso interno y auditoría contable.</div>
+                        </div>
+                        <div style="display: flex; gap: 30px;">
+                            <div class="signature-box">
+                                Aprobó Administración
+                            </div>
+                            <div class="signature-box">
+                                Control Operativo
+                            </div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        // Impresión individual de ficha del colaborador desde el modal
+        function printIndividualCollabJornal() {
+            if (currentModalCollabIndex === null || !calculatedJornales[currentModalCollabIndex]) {
+                alert("Selecciona un colaborador para imprimir.");
+                return;
+            }
+
+            const item = calculatedJornales[currentModalCollabIndex];
+            const picker = document.getElementById('jornalesWeekPicker');
+            const weekVal = picker ? picker.value : '';
+            const range = currentWeekRange && currentWeekRange.start ? currentWeekRange : getDatesOfISOWeek(weekVal);
+            const startFormatted = formatDateShort(range.start);
+            const endFormatted = formatDateShort(range.end);
+            const cleanWeekVal = weekVal.split('-W')[1] || weekVal;
+
+            const now = new Date();
+            const emissionDate = now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const emissionTime = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+            const logoUrl = new URL("../assets/logo.png", window.location.href).href;
+
+            const jornadas = getDetailedJornadas(item.name, range.start, range.end, fichajesPeriodo);
+            let rowsHtml = '';
+            let totalHs = 0;
+
+            if (jornadas.length === 0) {
+                rowsHtml = `<tr><td colspan="4" style="text-align: center; color: #6b7280; padding: 20px;">Sin fichadas registradas en la semana.</td></tr>`;
+            } else {
+                jornadas.forEach((j, idx) => {
+                    totalHs += j.horas;
+                    rowsHtml += `
+                        <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 12px;">${j.fecha}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: center; font-size: 12px;">${j.entrada}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: center; font-size: 12px;">${j.salida}</td>
+                            <td style="padding: 8px 12px; border: 1px solid #e2e8f0; text-align: right; font-size: 12px; font-weight: 700; color: #0284c7;">${j.horas.toFixed(2)} hs</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            const subtotal = totalHs * item.rate;
+            const total = subtotal + (item.bonus || 0);
+
+            const printWindow = window.open("", "_blank", "width=850,height=750");
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Ficha de Jornal - ${escapeAttr(item.name)}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 15mm 12mm; }
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            color: #111827;
+                            background: #ffffff;
+                            margin: 0;
+                            padding: 20px;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        .report-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-bottom: 2.5px solid #00bfff;
+                            padding-bottom: 12px;
+                            margin-bottom: 14px;
+                        }
+                        .logo-img { max-height: 50px; max-width: 170px; object-fit: contain; }
+                        .info-card {
+                            background: #f8fafc;
+                            border: 1px solid #cbd5e1;
+                            border-radius: 6px;
+                            padding: 12px 16px;
+                            margin-bottom: 16px;
+                            display: grid;
+                            grid-template-columns: 1.5fr 1fr;
+                            gap: 10px;
+                        }
+                        .table-report { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 11.5px; }
+                        .table-report th { background: #0f172a; color: #fff; padding: 8px 10px; border: 1px solid #0f172a; }
+                        .table-report tfoot td { background: #f1f5f9; font-weight: 800; border: 1.5px solid #cbd5e1; padding: 8px 10px; }
+                        .no-print { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 15px; }
+                        .btn-print { background: #00bfff; color: #000; font-weight: 700; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
+                        .btn-close { background: #f1f5f9; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; cursor: pointer; }
+                        @media print { .no-print { display: none !important; } body { padding: 0 !important; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print">
+                        <button class="btn-close" onclick="window.close()">✕ Cerrar</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ Imprimir Ficha</button>
+                    </div>
+
+                    <div class="report-header">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <img src="${logoUrl}" alt="ElectroFrío" class="logo-img" onerror="this.style.display='none'">
+                            <div>
+                                <h1 style="margin: 0; font-size: 18px; color: #0b192c; font-weight: 800;">ELECTROFRÍO</h1>
+                                <p style="margin: 2px 0 0 0; font-size: 10.5px; color: #6b7280;">Servicio Técnico Especializado</p>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <h2 style="margin: 0; font-size: 15px; color: #0088cc; font-weight: 800; text-transform: uppercase;">Recibo Semanal de Jornal</h2>
+                            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">Semana: ${cleanWeekVal} (${startFormatted} al ${endFormatted})</div>
+                            <div style="font-size: 10px; color: #9ca3af;">Emisión: ${emissionDate} ${emissionTime}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div>
+                            <div style="font-size: 16px; font-weight: 800; color: #0f172a;">${item.name}</div>
+                            <div style="font-size: 11.5px; color: #475569; margin-top: 3px;">Colaborador / Técnico Oficial</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 11.5px; color: #475569;">Tarifa por hora: <strong>${formatCurrency(item.rate)}</strong></div>
+                            <div style="font-size: 14px; font-weight: 800; color: #10b981; margin-top: 3px;">Total: ${formatCurrency(total)}</div>
+                        </div>
+                    </div>
+
+                    <table class="table-report">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th style="text-align: center;">Entrada</th>
+                                <th style="text-align: center;">Salida</th>
+                                <th style="text-align: right;">Horas Trabajadas</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="text-align: right;">Subtotal (${totalHs.toFixed(2)} hs x ${formatCurrency(item.rate)}):</td>
+                                <td style="text-align: right; color: #0284c7;">${formatCurrency(subtotal)}</td>
+                            </tr>
+                            ${item.bonus > 0 ? `
+                            <tr>
+                                <td colspan="3" style="text-align: right;">Bono por Productividad / Desempeño:</td>
+                                <td style="text-align: right; color: #f59e0b;">${formatCurrency(item.bonus)}</td>
+                            </tr>` : ''}
+                            <tr style="background: #ecfdf5;">
+                                <td colspan="3" style="text-align: right; font-size: 13px; color: #065f46;">TOTAL A LIQUIDAR:</td>
+                                <td style="text-align: right; font-size: 13.5px; color: #059669;">${formatCurrency(total)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div style="text-align: center; width: 180px; border-top: 1px solid #111; padding-top: 5px; font-size: 11px; font-weight: 700;">
+                            Firma del Colaborador
+                        </div>
+                        <div style="text-align: center; width: 180px; border-top: 1px solid #111; padding-top: 5px; font-size: 11px; font-weight: 700;">
+                            Aprobó Administración
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
 
         // 10. GENERACIÓN DE REPORTE PDF OFICIAL
         function generateJornalesPDF() {
@@ -1515,19 +2140,22 @@
 
             tempDiv.innerHTML = `
                 <div>
-                    <!-- Encabezado Institucional -->
-                    <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; align-items: center;">
-                        <div>
-                            <h1 style="color: #1e3656; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px;">ELECTROFRÍO</h1>
-                            <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b; font-style: italic;">Servicio Técnico Especializado en Refrigeración y Climatización</p>
+                    <!-- Encabezado Institucional con Logo -->
+                    <div style="display: flex; justify-content: space-between; border-bottom: 2.5px solid #00bfff; padding-bottom: 12px; margin-bottom: 18px; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <img src="${new URL('../assets/logo.png', window.location.href).href}" alt="ElectroFrío" style="max-height: 48px; max-width: 170px; object-fit: contain;">
+                            <div>
+                                <h1 style="color: #0b192c; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px;">ELECTROFRÍO</h1>
+                                <p style="margin: 2px 0 0 0; font-size: 10.5px; color: #64748b; font-style: italic;">Servicio Técnico Especializado en Refrigeración y Climatización</p>
+                            </div>
                         </div>
                         <div style="text-align: right;">
-                            <h2 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800; letter-spacing: 0.5px;">REPORTE DE JORNALES</h2>
-                            <p style="margin: 4px 0 0 0; font-size: 12px; color: #475569; font-weight: 700;">
-                                Semana: ${cleanWeekVal} (${startFormatted} - ${endFormatted})
+                            <h2 style="margin: 0; font-size: 17px; color: #0284c7; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">Reporte de Jornales</h2>
+                            <p style="margin: 3px 0 0 0; font-size: 11px; color: #334155; font-weight: 700;">
+                                Semana: ${cleanWeekVal} (${startFormatted} al ${endFormatted})
                             </p>
-                            <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">
-                                Emisión: ${emissionDate} ${emissionTime}
+                            <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;">
+                                Emisión: ${emissionDate} ${emissionTime} hs
                             </p>
                         </div>
                     </div>

@@ -1007,6 +1007,12 @@
         let ordenesTrabajo = [];
         let clientes = [];
         let colaboradores = [];
+        try {
+            const cachedCollabs = localStorage.getItem('electrofrio_collaborators') || localStorage.getItem('electrofrio_colaboradores');
+            if (cachedCollabs) {
+                colaboradores = JSON.parse(cachedCollabs) || [];
+            }
+        } catch(e) {}
         let planillas = [];
         window._mostrarHistorialCompleto = false;
         window._ordenesHistorialCargado = false;
@@ -1774,19 +1780,33 @@
             const container = document.getElementById('order-assignees-checkboxes');
             if (!container) return;
             container.innerHTML = '';
-            colaboradores.forEach(c => {
-                if (c.role === 'Colaborador') {
-                    const div = document.createElement('div');
-                    div.style.display = 'flex';
-                    div.style.alignItems = 'center';
-                    div.style.gap = '8px';
-                    div.style.marginBottom = '6px';
-                    div.innerHTML = `
-                        <input type="checkbox" name="order-assignees" id="cb-collab-${c.username || c.name.replace(/\s+/g, '')}" value="${c.name}">
-                        <label for="cb-collab-${c.username || c.name.replace(/\s+/g, '')}" style="margin-bottom:0; font-weight:normal; color:var(--text-primary); cursor:pointer;">${c.name}</label>
-                    `;
-                    container.appendChild(div);
-                }
+
+            if (colaboradores.length === 0) {
+                try {
+                    const cached = localStorage.getItem('electrofrio_collaborators') || localStorage.getItem('electrofrio_colaboradores');
+                    if (cached) colaboradores = JSON.parse(cached) || [];
+                } catch(e) {}
+            }
+
+            const collabs = colaboradores.filter(c => !c.role || c.role === 'Colaborador' || (typeof c.role === 'string' && c.role.toLowerCase() === 'colaborador'));
+
+            if (collabs.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; padding: 6px;">No hay colaboradores registrados para asignar.</div>';
+                return;
+            }
+
+            collabs.forEach(c => {
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.gap = '8px';
+                div.style.marginBottom = '6px';
+                const safeId = `cb-collab-${(c.username || c.name || Math.random()).toString().replace(/[^a-zA-Z0-9]/g, '')}`;
+                div.innerHTML = `
+                    <input type="checkbox" name="order-assignees" id="${safeId}" value="${c.name}">
+                    <label for="${safeId}" style="margin-bottom:0; font-weight:normal; color:var(--text-primary); cursor:pointer;">${c.name} ${c.username ? `<span style="color:var(--text-muted); font-size:11px;">(@${c.username})</span>` : ''}</label>
+                `;
+                container.appendChild(div);
             });
             updateOrderCollabAvailability();
         }
@@ -2018,20 +2038,34 @@
             const container = document.getElementById('detail-assignees-checkboxes');
             if (!container) return;
             container.innerHTML = '';
-            colaboradores.forEach(c => {
-                if (c.role === 'Colaborador') {
-                    const isChecked = assignedList.includes(c.name) ? 'checked' : '';
-                    const div = document.createElement('div');
-                    div.style.display = 'flex';
-                    div.style.alignItems = 'center';
-                    div.style.gap = '8px';
-                    div.style.marginBottom = '6px';
-                    div.innerHTML = `
-                        <input type="checkbox" name="edit-order-assignees" id="cb-edit-collab-${c.username || c.name.replace(/\s+/g, '')}" value="${c.name}" ${isChecked}>
-                        <label for="cb-edit-collab-${c.username || c.name.replace(/\s+/g, '')}" style="margin-bottom:0; font-weight:normal; color:var(--text-primary); cursor:pointer;">${c.name}</label>
-                    `;
-                    container.appendChild(div);
-                }
+
+            if (colaboradores.length === 0) {
+                try {
+                    const cached = localStorage.getItem('electrofrio_collaborators') || localStorage.getItem('electrofrio_colaboradores');
+                    if (cached) colaboradores = JSON.parse(cached) || [];
+                } catch(e) {}
+            }
+
+            const collabs = colaboradores.filter(c => !c.role || c.role === 'Colaborador' || (typeof c.role === 'string' && c.role.toLowerCase() === 'colaborador'));
+
+            if (collabs.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; padding: 6px;">No hay colaboradores registrados para asignar.</div>';
+                return;
+            }
+
+            collabs.forEach(c => {
+                const isChecked = assignedList.includes(c.name) ? 'checked' : '';
+                const div = document.createElement('div');
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.gap = '8px';
+                div.style.marginBottom = '6px';
+                const safeId = `cb-edit-collab-${(c.username || c.name || Math.random()).toString().replace(/[^a-zA-Z0-9]/g, '')}`;
+                div.innerHTML = `
+                    <input type="checkbox" name="edit-order-assignees" id="${safeId}" value="${c.name}" ${isChecked}>
+                    <label for="${safeId}" style="margin-bottom:0; font-weight:normal; color:var(--text-primary); cursor:pointer;">${c.name} ${c.username ? `<span style="color:var(--text-muted); font-size:11px;">(@${c.username})</span>` : ''}</label>
+                `;
+                container.appendChild(div);
             });
             updateDetailOrderCollabAvailability();
         }
@@ -2580,33 +2614,61 @@
             }
         });
 
+        function updateCollabFilterOptions() {
+            const collabFilter = document.getElementById('orderCollabFilter');
+            if (collabFilter) {
+                const curVal = collabFilter.value;
+                collabFilter.innerHTML = '<option value="ALL">Todos los Colaboradores</option>';
+                const collabs = colaboradores.filter(c => !c.role || c.role === 'Colaborador' || (typeof c.role === 'string' && c.role.toLowerCase() === 'colaborador'));
+                collabs.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.name;
+                    opt.textContent = c.name;
+                    collabFilter.appendChild(opt);
+                });
+                if (curVal && Array.from(collabFilter.options).some(o => o.value === curVal)) {
+                    collabFilter.value = curVal;
+                }
+            }
+        }
+
         // 18. FIRESTORE REAL-TIME LISTENERS
         function initFirestoreListeners() {
-            // A. Colección Colaboradores
-            db.collection('colaboradores').onSnapshot(snap => {
+            // A. Colección Usuarios (Colaboradores del sistema)
+            function processCollabDocs(snap) {
                 const list = [];
                 snap.forEach(doc => {
                     const data = doc.data();
                     data.id = doc.id;
                     list.push(data);
                 });
-                colaboradores = list;
+                if (list.length > 0) {
+                    colaboradores = list;
+                    try {
+                        localStorage.setItem('electrofrio_collaborators', JSON.stringify(colaboradores));
+                    } catch(e) {}
+                    updateCollabFilterOptions();
 
-                // Actualizar filtro de colaboradores
-                const collabFilter = document.getElementById('orderCollabFilter');
-                if (collabFilter) {
-                    const curVal = collabFilter.value;
-                    collabFilter.innerHTML = '<option value="ALL">Todos los Colaboradores</option>';
-                    colaboradores.forEach(c => {
-                        if (c.role === 'Colaborador') {
-                            const opt = document.createElement('option');
-                            opt.value = c.name;
-                            opt.textContent = c.name;
-                            collabFilter.appendChild(opt);
-                        }
-                    });
-                    collabFilter.value = curVal;
+                    // Si algún modal de asignación está abierto, actualizarlo en vivo
+                    if (document.getElementById('modalNuevaOrden')?.classList.contains('show')) {
+                        populateAssigneeSelect();
+                    }
+                    if (document.getElementById('modalDetalleOrden')?.classList.contains('show')) {
+                        const currentOrderId = document.getElementById('detail-order-id')?.textContent.trim();
+                        const ord = ordenesTrabajo.find(o => o.id === currentOrderId);
+                        const assignedList = ord ? (Array.isArray(ord.assignees) ? ord.assignees : (ord.assignee ? [ord.assignee] : [])) : [];
+                        populateEditAssigneesCheckboxes(assignedList, currentOrderId);
+                    }
                 }
+            }
+
+            db.collection('usuarios').onSnapshot(snap => {
+                processCollabDocs(snap);
+            }, err => {
+                console.warn("Aviso al escuchar usuarios en ordenes:", err);
+                db.collection('colaboradores').onSnapshot(snap => {
+                    processCollabDocs(snap);
+                }, () => {});
             });
 
             // B. Colección Clientes
@@ -2670,6 +2732,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             applyRoleVisibility();
             setupClientAutocomplete();
+            updateCollabFilterOptions();
 
             // Cargar de caché local inmediatamente
             const cachedOrders = localStorage.getItem('electrofrio_workorders');

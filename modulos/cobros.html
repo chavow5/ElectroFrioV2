@@ -865,6 +865,39 @@
             -webkit-filter: brightness(0) !important;
             opacity: 0.7 !important;
         }
+
+        /* Estilos de Impresión Directa */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+            }
+            .header-banner, .filter-panel, .debtors-panel, .top-bar-user, .btn, .search-box-wrapper, #theme-toggle, .btn-icon {
+                display: none !important;
+            }
+            .main-container {
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+            .table-card {
+                background: #ffffff !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .custom-table {
+                color: #111111 !important;
+            }
+            .custom-table th {
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            .custom-table td {
+                border: 1px solid #e2e8f0 !important;
+                color: #111111 !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -967,6 +1000,10 @@
                     <span>Registrar Cobro</span>
                 </button>
 
+                <button class="btn btn-secondary btn-sm" onclick="printCobrosGeneralReport()" title="Imprimir informe general de cobranzas y deudores en A4 / PDF">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    <span>Imprimir Informe</span>
+                </button>
                 <button class="btn btn-secondary btn-sm" onclick="exportCobrosToExcel()" title="Descargar reporte en Excel">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     <span>Excel</span>
@@ -1239,6 +1276,10 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('modal-statement')">Cerrar</button>
+                <button class="btn btn-secondary" onclick="printClientStatementReport()" style="display: inline-flex; align-items: center; gap: 6px;" title="Imprimir estado de cuenta oficial con logo y datos bancarios">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    <span>🖨️ Imprimir Estado</span>
+                </button>
                 <button class="btn btn-whatsapp" onclick="openWhatsAppReminderFromStatement()">
                     <span>💬 Enviar Estado por WhatsApp</span>
                 </button>
@@ -2450,6 +2491,705 @@
             window.open(waUrl, '_blank');
             closeModal('modal-whatsapp-debt');
             showToast("WhatsApp abierto en pestaña nueva", "success");
+        }
+
+        // --- 8. INFORMES IMPRESOS Y PDF OFICIALES CON LOGO ELECTROFRÍO ---
+        function printCobrosGeneralReport() {
+            if (filteredData.length === 0) {
+                showToast("No hay datos en la lista actual para imprimir.", "error");
+                return;
+            }
+
+            const logoUrl = new URL("../assets/logo.png", window.location.href).href;
+            const now = new Date();
+            const fechaEmision = now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+            
+            const statusFilter = document.getElementById('filter-status')?.value || 'all';
+            let filterLabel = 'Todos los Clientes';
+            if (statusFilter === 'deudores') filterLabel = 'Solo Clientes con Deuda (Deudores)';
+            if (statusFilter === 'aldia') filterLabel = 'Solo Clientes al Día';
+            if (statusFilter === 'afavor') filterLabel = 'Solo Clientes con Saldo a Favor';
+
+            let sumCargos = 0;
+            let sumAbonos = 0;
+            let sumSaldo = 0;
+            let countDeudores = 0;
+
+            filteredData.forEach(item => {
+                sumCargos += (parseFloat(item.totalCargos) || 0);
+                sumAbonos += (parseFloat(item.totalAbonos) || 0);
+                sumSaldo += (parseFloat(item.balance) || 0);
+                if (item.balance > 0.01) countDeudores++;
+            });
+
+            let rowsHtml = '';
+            filteredData.forEach((item, index) => {
+                let badgeColor = '#10b981';
+                let estadoText = 'Al Día';
+                if (item.balance > 0.01) {
+                    badgeColor = '#ef4444';
+                    estadoText = 'DEUDOR';
+                } else if (item.balance < -0.01) {
+                    badgeColor = '#0284c7';
+                    estadoText = 'A FAVOR';
+                }
+
+                rowsHtml += `
+                    <tr style="background: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+                        <td style="padding: 7px 8px; border: 1px solid #e5e7eb; font-weight: 700; color: #0284c7; text-align: center; font-size: 11px;">${item.clientCode || '-'}</td>
+                        <td style="padding: 7px 8px; border: 1px solid #e5e7eb; font-weight: 600; color: #111827; font-size: 12px;">${escapeAttr(item.name)}</td>
+                        <td style="padding: 7px 8px; border: 1px solid #e5e7eb; font-size: 11px; color: #4b5563;">${item.phone || '-'}</td>
+                        <td style="padding: 7px 8px; border: 1px solid #e5e7eb; font-size: 11px; color: #4b5563;">${item.cuit || '-'}</td>
+                        <td style="padding: 7px 8px; border: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: 600; font-size: 11px;">${formatCurrency(item.totalCargos)}</td>
+                        <td style="padding: 7px 8px; border: 1px solid #e5e7eb; text-align: right; color: #059669; font-weight: 600; font-size: 11px;">${formatCurrency(item.totalAbonos)}</td>
+                        <td style="padding: 7px 8px; border: 1px solid #e5e7eb; text-align: right; font-weight: 700; color: ${item.balance > 0.01 ? '#dc2626' : (item.balance < -0.01 ? '#0284c7' : '#059669')}; font-size: 11.5px;">${formatCurrency(item.balance)}</td>
+                        <td style="padding: 7px 8px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px; font-weight: 700; color: ${badgeColor};">${estadoText}</td>
+                    </tr>
+                `;
+            });
+
+            const printWindow = window.open("", "_blank", "width=1000,height=800");
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Informe General de Cobranzas - ElectroFrío</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 12mm 10mm; }
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            color: #111827;
+                            background: #ffffff;
+                            margin: 0;
+                            padding: 20px;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        .report-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-bottom: 2.5px solid #00bfff;
+                            padding-bottom: 12px;
+                            margin-bottom: 14px;
+                        }
+                        .header-left {
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                        }
+                        .logo-img {
+                            max-height: 55px;
+                            max-width: 190px;
+                            object-fit: contain;
+                        }
+                        .company-info h1 {
+                            margin: 0;
+                            font-size: 19px;
+                            color: #0b192c;
+                            font-weight: 800;
+                            letter-spacing: -0.3px;
+                        }
+                        .company-info p {
+                            margin: 2px 0 0 0;
+                            font-size: 11px;
+                            color: #6b7280;
+                        }
+                        .header-right {
+                            text-align: right;
+                        }
+                        .header-right .report-title {
+                            font-size: 15px;
+                            font-weight: 800;
+                            color: #0088cc;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+                        .header-right .report-meta {
+                            font-size: 11px;
+                            color: #6b7280;
+                            margin-top: 3px;
+                        }
+                        .kpi-grid {
+                            display: grid;
+                            grid-template-columns: repeat(4, 1fr);
+                            gap: 10px;
+                            margin-bottom: 16px;
+                        }
+                        .kpi-card {
+                            background: #f8fafc;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 6px;
+                            padding: 8px 10px;
+                            text-align: center;
+                        }
+                        .kpi-title {
+                            font-size: 10px;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            color: #64748b;
+                        }
+                        .kpi-val {
+                            font-size: 14px;
+                            font-weight: 800;
+                            margin-top: 3px;
+                        }
+                        .table-report {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 18px;
+                            font-size: 11px;
+                        }
+                        .table-report th {
+                            background: #0f172a;
+                            color: #ffffff;
+                            padding: 8px 8px;
+                            font-size: 10.5px;
+                            font-weight: 700;
+                            border: 1px solid #0f172a;
+                            text-align: left;
+                        }
+                        .table-report tfoot td {
+                            background: #f1f5f9;
+                            font-weight: 800;
+                            border: 1.5px solid #cbd5e1;
+                            padding: 8px 8px;
+                            font-size: 11.5px;
+                        }
+                        .report-footer {
+                            margin-top: 25px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-end;
+                            font-size: 10.5px;
+                            color: #64748b;
+                            border-top: 1px solid #e2e8f0;
+                            padding-top: 12px;
+                        }
+                        .signature-box {
+                            text-align: center;
+                            width: 220px;
+                            border-top: 1px solid #111827;
+                            padding-top: 5px;
+                            font-weight: 700;
+                            color: #111827;
+                            font-size: 11px;
+                        }
+                        .no-print {
+                            position: sticky;
+                            top: 0;
+                            background: #ffffff;
+                            padding: 10px 0 15px 0;
+                            margin-bottom: 12px;
+                            border-bottom: 1px solid #e2e8f0;
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 10px;
+                            z-index: 100;
+                        }
+                        .btn-print {
+                            background: #00bfff;
+                            color: #000;
+                            font-weight: 700;
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            border: none;
+                            cursor: pointer;
+                            font-size: 13px;
+                        }
+                        .btn-close {
+                            background: #f1f5f9;
+                            color: #334155;
+                            font-weight: 600;
+                            padding: 8px 14px;
+                            border-radius: 6px;
+                            border: 1px solid #cbd5e1;
+                            cursor: pointer;
+                            font-size: 13px;
+                        }
+                        @media print {
+                            .no-print { display: none !important; }
+                            body { padding: 0 !important; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                            thead { display: table-header-group; }
+                            tfoot { display: table-footer-group; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print">
+                        <button class="btn-close" onclick="window.close()">✕ Cerrar</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar en PDF</button>
+                    </div>
+
+                    <div class="report-header">
+                        <div class="header-left">
+                            <img src="${logoUrl}" alt="ElectroFrío" class="logo-img" onerror="this.style.display='none'">
+                            <div class="company-info">
+                                <h1>ELECTROFRÍO</h1>
+                                <p>Servicio Técnico • Refrigeración y Climatización Comercial e Industrial</p>
+                            </div>
+                        </div>
+                        <div class="header-right">
+                            <div class="report-title">Informe General de Cobranzas</div>
+                            <div class="report-meta">Filtro: <strong>${filterLabel}</strong></div>
+                            <div class="report-meta">Emisión: ${fechaEmision} hs</div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen Ejecutivo -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div class="kpi-title">Total Saldo Pendiente</div>
+                            <div class="kpi-val" style="color: #dc2626;">${formatCurrency(sumSaldo)}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Clientes Deudores</div>
+                            <div class="kpi-val" style="color: #dc2626;">${countDeudores} de ${filteredData.length}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Total Cargos (Deudas)</div>
+                            <div class="kpi-val" style="color: #4b5563;">${formatCurrency(sumCargos)}</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-title">Total Pagado (Cobrado)</div>
+                            <div class="kpi-val" style="color: #059669;">${formatCurrency(sumAbonos)}</div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Clientes -->
+                    <table class="table-report">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px; text-align: center;">Código</th>
+                                <th>Cliente / Razón Social</th>
+                                <th style="width: 100px;">Teléfono</th>
+                                <th style="width: 95px;">CUIT</th>
+                                <th style="width: 95px; text-align: right;">Cargos ($)</th>
+                                <th style="width: 95px; text-align: right;">Cobrado ($)</th>
+                                <th style="width: 105px; text-align: right;">Saldo Actual</th>
+                                <th style="width: 75px; text-align: center;">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" style="text-align: right;">TOTALES CONSOLIDADOS:</td>
+                                <td style="text-align: right; color: #dc2626;">${formatCurrency(sumCargos)}</td>
+                                <td style="text-align: right; color: #059669;">${formatCurrency(sumAbonos)}</td>
+                                <td style="text-align: right; color: ${sumSaldo > 0 ? '#dc2626' : '#059669'};">${formatCurrency(sumSaldo)}</td>
+                                <td style="text-align: center;">${filteredData.length} Clientes</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div class="report-footer">
+                        <div>
+                            <div>Sistema de Gestión ElectroFrío V2 • Reporte Oficial</div>
+                            <div style="font-size: 9.5px; color: #9ca3af; margin-top: 2px;">Generado automáticamente para control contable y administrativo.</div>
+                        </div>
+                        <div class="signature-box">
+                            Control Administración / Cobranzas
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function printClientStatementReport() {
+            const clientId = document.getElementById('statement-client-id')?.value;
+            if (!clientId) {
+                showToast("No se ha seleccionado ningún cliente.", "error");
+                return;
+            }
+
+            const client = clientsList.find(c => c.id === clientId);
+            if (!client) {
+                showToast("Cliente no encontrado.", "error");
+                return;
+            }
+
+            const logoUrl = new URL("../assets/logo.png", window.location.href).href;
+            const now = new Date();
+            const fechaEmision = now.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+            // Movimientos del cliente
+            const map = new Map();
+            movementsList.filter(m => m.clientId === clientId).forEach(m => {
+                if (m && m.id) map.set(m.id, m);
+            });
+            const clientMovs = Array.from(map.values()).sort((a, b) => new Date(a.date || a.createdAt || 0) - new Date(b.date || b.createdAt || 0));
+
+            let runningBalance = 0;
+            let rowsHtml = '';
+            let totalCargos = 0;
+            let totalAbonos = 0;
+
+            if (clientMovs.length === 0) {
+                rowsHtml = `<tr><td colspan="6" style="text-align: center; color: #6b7280; padding: 25px;">No hay movimientos registrados para este cliente.</td></tr>`;
+            } else {
+                clientMovs.forEach((m, idx) => {
+                    const amt = parseFloat(m.amount) || 0;
+                    let cargoStr = '-';
+                    let abonoStr = '-';
+
+                    if (m.type === 'cargo') {
+                        runningBalance += amt;
+                        totalCargos += amt;
+                        cargoStr = formatCurrency(amt);
+                    } else if (m.type === 'abono') {
+                        runningBalance -= amt;
+                        totalAbonos += amt;
+                        abonoStr = formatCurrency(amt);
+                    }
+
+                    const typeBadge = m.type === 'cargo' 
+                        ? '<span style="color: #dc2626; font-weight: 700; font-size: 10px; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">CARGO (DEUDA)</span>'
+                        : '<span style="color: #059669; font-weight: 700; font-size: 10px; background: #d1fae5; padding: 2px 6px; border-radius: 4px;">PAGO (COBRO)</span>';
+
+                    const detailText = `${escapeAttr(m.concept || 'Servicio / Mantenimiento')}${m.paymentMethod ? ` • <em>${m.paymentMethod}</em>` : ''}${m.receiptNumber ? ` • Comp: <strong>${escapeAttr(m.receiptNumber)}</strong>` : ''}`;
+
+                    rowsHtml += `
+                        <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+                            <td style="padding: 7px 8px; border: 1px solid #e5e7eb; font-size: 11px; text-align: center; color: #4b5563;">${formatDate(m.date)}</td>
+                            <td style="padding: 7px 8px; border: 1px solid #e5e7eb; text-align: center;">${typeBadge}</td>
+                            <td style="padding: 7px 8px; border: 1px solid #e5e7eb; font-size: 11.5px; color: #1f2937;">${detailText}</td>
+                            <td style="padding: 7px 8px; border: 1px solid #e5e7eb; text-align: right; color: #dc2626; font-weight: 600; font-size: 11.5px;">${cargoStr}</td>
+                            <td style="padding: 7px 8px; border: 1px solid #e5e7eb; text-align: right; color: #059669; font-weight: 600; font-size: 11.5px;">${abonoStr}</td>
+                            <td style="padding: 7px 8px; border: 1px solid #e5e7eb; text-align: right; font-weight: 800; color: ${runningBalance > 0.01 ? '#dc2626' : (runningBalance < -0.01 ? '#0284c7' : '#059669')}; font-size: 12px;">${formatCurrency(runningBalance)}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            let balanceBannerBg = '#ecfdf5';
+            let balanceBannerBorder = '#a7f3d0';
+            let balanceBannerColor = '#065f46';
+            let balanceBannerTitle = 'CUENTA AL DÍA';
+            let balanceBannerSub = 'Este cliente no registra saldos adeudados a la fecha.';
+
+            if (runningBalance > 0.01) {
+                balanceBannerBg = '#fef2f2';
+                balanceBannerBorder = '#fecaca';
+                balanceBannerColor = '#991b1b';
+                balanceBannerTitle = `SALDO PENDIENTE A COBRAR: ${formatCurrency(runningBalance)}`;
+                balanceBannerSub = 'Por favor regularizar mediante transferencia bancaria o efectivo.';
+            } else if (runningBalance < -0.01) {
+                balanceBannerBg = '#f0f9ff';
+                balanceBannerBorder = '#bae6fd';
+                balanceBannerColor = '#075985';
+                balanceBannerTitle = `SALDO A FAVOR DEL CLIENTE: ${formatCurrency(Math.abs(runningBalance))}`;
+                balanceBannerSub = 'El cliente cuenta con saldo disponible a su favor.';
+            }
+
+            const printWindow = window.open("", "_blank", "width=950,height=850");
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="es">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Estado de Cuenta - ${escapeAttr(client.name)}</title>
+                    <style>
+                        @page { size: A4 portrait; margin: 12mm 12mm; }
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            color: #111827;
+                            background: #ffffff;
+                            margin: 0;
+                            padding: 20px;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        .report-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            border-bottom: 2.5px solid #00bfff;
+                            padding-bottom: 12px;
+                            margin-bottom: 14px;
+                        }
+                        .header-left {
+                            display: flex;
+                            align-items: center;
+                            gap: 14px;
+                        }
+                        .logo-img {
+                            max-height: 55px;
+                            max-width: 190px;
+                            object-fit: contain;
+                        }
+                        .company-info h1 {
+                            margin: 0;
+                            font-size: 19px;
+                            color: #0b192c;
+                            font-weight: 800;
+                            letter-spacing: -0.3px;
+                        }
+                        .company-info p {
+                            margin: 2px 0 0 0;
+                            font-size: 11px;
+                            color: #6b7280;
+                        }
+                        .header-right {
+                            text-align: right;
+                        }
+                        .header-right .report-title {
+                            font-size: 16px;
+                            font-weight: 800;
+                            color: #0088cc;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }
+                        .header-right .report-meta {
+                            font-size: 11px;
+                            color: #6b7280;
+                            margin-top: 3px;
+                        }
+                        .client-card {
+                            background: #f8fafc;
+                            border: 1px solid #cbd5e1;
+                            border-radius: 6px;
+                            padding: 12px 16px;
+                            margin-bottom: 14px;
+                            display: grid;
+                            grid-template-columns: 1.5fr 1fr;
+                            gap: 12px;
+                        }
+                        .client-name {
+                            font-size: 16px;
+                            font-weight: 800;
+                            color: #0f172a;
+                        }
+                        .client-detail-line {
+                            font-size: 11.5px;
+                            color: #475569;
+                            margin-top: 3px;
+                        }
+                        .balance-banner {
+                            background: ${balanceBannerBg};
+                            border: 1.5px solid ${balanceBannerBorder};
+                            color: ${balanceBannerColor};
+                            padding: 12px 16px;
+                            border-radius: 6px;
+                            margin-bottom: 16px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+                        .balance-banner-title {
+                            font-size: 15px;
+                            font-weight: 800;
+                        }
+                        .balance-banner-sub {
+                            font-size: 11px;
+                            margin-top: 2px;
+                            opacity: 0.9;
+                        }
+                        .table-report {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-bottom: 18px;
+                            font-size: 11px;
+                        }
+                        .table-report th {
+                            background: #0f172a;
+                            color: #ffffff;
+                            padding: 8px 8px;
+                            font-size: 10.5px;
+                            font-weight: 700;
+                            border: 1px solid #0f172a;
+                            text-align: left;
+                        }
+                        .table-report tfoot td {
+                            background: #f1f5f9;
+                            font-weight: 800;
+                            border: 1.5px solid #cbd5e1;
+                            padding: 8px 8px;
+                            font-size: 11.5px;
+                        }
+                        .bank-box {
+                            background: #f0fdf4;
+                            border: 1px solid #bbf7d0;
+                            border-radius: 6px;
+                            padding: 10px 14px;
+                            margin-top: 14px;
+                            font-size: 11px;
+                            color: #166534;
+                        }
+                        .bank-box-title {
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            margin-bottom: 4px;
+                            color: #14532d;
+                            font-size: 11.5px;
+                        }
+                        .bank-grid {
+                            display: grid;
+                            grid-template-columns: repeat(3, 1fr);
+                            gap: 10px;
+                            margin-top: 4px;
+                        }
+                        .report-footer {
+                            margin-top: 25px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-end;
+                            font-size: 10.5px;
+                            color: #64748b;
+                            border-top: 1px solid #e2e8f0;
+                            padding-top: 12px;
+                        }
+                        .signature-box {
+                            text-align: center;
+                            width: 220px;
+                            border-top: 1px solid #111827;
+                            padding-top: 5px;
+                            font-weight: 700;
+                            color: #111827;
+                            font-size: 11px;
+                        }
+                        .no-print {
+                            position: sticky;
+                            top: 0;
+                            background: #ffffff;
+                            padding: 10px 0 15px 0;
+                            margin-bottom: 12px;
+                            border-bottom: 1px solid #e2e8f0;
+                            display: flex;
+                            justify-content: flex-end;
+                            gap: 10px;
+                            z-index: 100;
+                        }
+                        .btn-print {
+                            background: #00bfff;
+                            color: #000;
+                            font-weight: 700;
+                            padding: 8px 16px;
+                            border-radius: 6px;
+                            border: none;
+                            cursor: pointer;
+                            font-size: 13px;
+                        }
+                        .btn-close {
+                            background: #f1f5f9;
+                            color: #334155;
+                            font-weight: 600;
+                            padding: 8px 14px;
+                            border-radius: 6px;
+                            border: 1px solid #cbd5e1;
+                            cursor: pointer;
+                            font-size: 13px;
+                        }
+                        @media print {
+                            .no-print { display: none !important; }
+                            body { padding: 0 !important; }
+                            table { page-break-inside: auto; }
+                            tr { page-break-inside: avoid; page-break-after: auto; }
+                            thead { display: table-header-group; }
+                            tfoot { display: table-footer-group; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="no-print">
+                        <button class="btn-close" onclick="window.close()">✕ Cerrar</button>
+                        <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar en PDF</button>
+                    </div>
+
+                    <div class="report-header">
+                        <div class="header-left">
+                            <img src="${logoUrl}" alt="ElectroFrío" class="logo-img" onerror="this.style.display='none'">
+                            <div class="company-info">
+                                <h1>ELECTROFRÍO</h1>
+                                <p>Servicio Técnico • Refrigeración y Climatización Comercial e Industrial</p>
+                            </div>
+                        </div>
+                        <div class="header-right">
+                            <div class="report-title">Estado de Cuenta</div>
+                            <div class="report-meta">Comprobante Oficial de Movimientos</div>
+                            <div class="report-meta">Emisión: ${fechaEmision} hs</div>
+                        </div>
+                    </div>
+
+                    <!-- Ficha del Cliente -->
+                    <div class="client-card">
+                        <div>
+                            <div class="client-name">${escapeAttr(client.name)}</div>
+                            <div class="client-detail-line"><strong>Código:</strong> ${client.clientCode || client.id}</div>
+                            <div class="client-detail-line"><strong>Domicilio:</strong> ${client.address || 'Sin especificar'}</div>
+                        </div>
+                        <div>
+                            <div class="client-detail-line"><strong>CUIT / DNI:</strong> ${client.cuit || 'Consumidor Final'}</div>
+                            <div class="client-detail-line"><strong>Teléfono:</strong> ${client.phone || 'Sin registrar'}</div>
+                            <div class="client-detail-line"><strong>Condición IVA:</strong> ${client.iva || 'Consumidor Final'}</div>
+                        </div>
+                    </div>
+
+                    <!-- Banner de Saldo Actual -->
+                    <div class="balance-banner">
+                        <div>
+                            <div class="balance-banner-title">${balanceBannerTitle}</div>
+                            <div class="balance-banner-sub">${balanceBannerSub}</div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Movimientos -->
+                    <table class="table-report">
+                        <thead>
+                            <tr>
+                                <th style="width: 75px; text-align: center;">Fecha</th>
+                                <th style="width: 100px; text-align: center;">Tipo</th>
+                                <th>Concepto / Detalle del Trabajo</th>
+                                <th style="width: 95px; text-align: right;">Cargo (Debe)</th>
+                                <th style="width: 95px; text-align: right;">Cobro (Haber)</th>
+                                <th style="width: 105px; text-align: right;">Saldo Acumulado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" style="text-align: right;">TOTALES ACUMULADOS:</td>
+                                <td style="text-align: right; color: #dc2626;">${formatCurrency(totalCargos)}</td>
+                                <td style="text-align: right; color: #059669;">${formatCurrency(totalAbonos)}</td>
+                                <td style="text-align: right; color: ${runningBalance > 0.01 ? '#dc2626' : (runningBalance < -0.01 ? '#0284c7' : '#059669')};">${formatCurrency(runningBalance)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- Datos para Transferencia Bancaria -->
+                    <div class="bank-box">
+                        <div class="bank-box-title">💳 Datos Bancarios para Transferencia / Cancelación de Saldo</div>
+                        <div class="bank-grid">
+                            <div><strong>Banco:</strong> BANCO NACIÓN</div>
+                            <div><strong>Alias:</strong> ELECTROFRIOLR.BN</div>
+                            <div><strong>Titular:</strong> Arias Jorge, Víctor Ignacio</div>
+                        </div>
+                        <div style="margin-top: 5px; font-size: 10px; color: #15803d;">
+                            * Por favor enviar comprobante de pago por WhatsApp al realizar la transferencia para su acreditación inmediata.
+                        </div>
+                    </div>
+
+                    <div class="report-footer">
+                        <div>
+                            <div>ElectroFrío • Climatización y Refrigeración</div>
+                            <div style="font-size: 9.5px; color: #9ca3af; margin-top: 2px;">Este estado de cuenta refleja todos los cargos y abonos registrados a la fecha.</div>
+                        </div>
+                        <div class="signature-box">
+                            Firma de Conformidad / Administración
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         }
 
         // --- 8. EXPORTAR A EXCEL ---

@@ -269,6 +269,28 @@
             border-color: var(--color-blue, #00bfff);
         }
 
+        select.filter-input {
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300bfff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            padding-right: 32px;
+        }
+
+        select.filter-input option {
+            background-color: #0d1527;
+            color: #ffffff;
+            padding: 8px 12px;
+        }
+
+        body.light-mode select.filter-input option {
+            background-color: #ffffff;
+            color: #0f172a;
+        }
+
         .btn-buscar-fichajes {
             background-color: var(--color-blue, #00bfff);
             color: #000;
@@ -635,6 +657,61 @@
                 padding: 18px 14px;
             }
         }
+
+        /* Separador de Días en la Tabla de Fichajes */
+        .fichajes-day-divider td {
+            background: rgba(30, 41, 59, 0.85) !important;
+            border-top: 3px solid #64748b !important;
+            border-bottom: 1px solid #334155 !important;
+            padding: 12px 18px !important;
+        }
+
+        body.light-mode .fichajes-day-divider td {
+            background: #e2e8f0 !important;
+            border-top: 3px solid #94a3b8 !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+
+        .fichajes-day-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        body.light-mode .fichajes-day-title {
+            color: #0f172a !important;
+        }
+
+        .fichaje-subturn-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            display: inline-block;
+        }
+
+        .subturn-complete {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .subturn-missing-out {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .subturn-missing-in {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -662,6 +739,9 @@
 
             <!-- Botones Admin -->
             <div id="adminHeaderActions" style="display: none; gap: 8px;">
+                <button type="button" class="btn-historial-head" id="btnLimpiarDuplicados" onclick="cleanDuplicateFichajes()" title="Buscar y eliminar fichajes duplicados">
+                    🧹 Limpiar Duplicados
+                </button>
                 <button type="button" class="btn-historial-head" id="btnVerHistorialFichajes" onclick="loadFichajesHistorial()">
                     📂 Ver Historial Anterior
                 </button>
@@ -696,7 +776,7 @@
 
             <!-- Botón de Fichaje Único -->
             <div style="display: flex; justify-content: center;">
-                <button id="btnFicharUnico" class="fichaje-btn-main in">
+                <button id="btnFicharUnico" type="button" class="fichaje-btn-main in">
                     Cargando estado...
                 </button>
             </div>
@@ -807,27 +887,32 @@
 
         <!-- 4. FILTROS PARA EL HISTORIAL GENERAL -->
         <div class="content-card">
-            <h3 style="margin: 0 0 14px 0; font-size: 16px; font-family: 'Outfit', sans-serif; color: var(--color-blue);">
-                Filtros de Búsqueda
-            </h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; font-size: 16px; font-family: 'Outfit', sans-serif; color: var(--color-blue);">
+                    Filtros de Búsqueda
+                </h3>
+                <button type="button" onclick="resetFichajesFilters()" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-muted); font-size: 12px; padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease;">
+                    ↺ Restablecer Filtros
+                </button>
+            </div>
             <div class="fichajes-filters-grid">
-                <div class="filter-item">
-                    <label>Colaboradores</label>
-                    <div class="collab-chips-selector" id="fichajesCollabFilterList">
-                        <!-- Checkboxes dinámicos -->
-                    </div>
+                <div class="filter-item" style="flex: 1; min-width: 200px;">
+                    <label for="filterFichajesCollab">Técnico / Colaborador</label>
+                    <select id="filterFichajesCollab" class="filter-input" onchange="handleBuscarFichajes()">
+                        <option value="">Todos los técnicos</option>
+                    </select>
                 </div>
                 <div class="filter-item">
-                    <label>Desde</label>
-                    <input type="date" id="filterFichajesDesde" class="filter-input">
+                    <label for="filterFichajesDesde">Desde</label>
+                    <input type="date" id="filterFichajesDesde" class="filter-input" onchange="handleBuscarFichajes()">
                 </div>
                 <div class="filter-item">
-                    <label>Hasta</label>
-                    <input type="date" id="filterFichajesHasta" class="filter-input">
+                    <label for="filterFichajesHasta">Hasta</label>
+                    <input type="date" id="filterFichajesHasta" class="filter-input" onchange="handleBuscarFichajes()">
                 </div>
-                <div class="filter-item">
-                    <label>Buscar Texto</label>
-                    <input type="text" id="filterFichajesSearch" class="filter-input" placeholder="Nombre o usuario...">
+                <div class="filter-item" style="flex: 1; min-width: 180px;">
+                    <label for="filterFichajesSearch">Buscar Texto</label>
+                    <input type="text" id="filterFichajesSearch" class="filter-input" placeholder="Nombre o usuario..." oninput="handleBuscarFichajes()">
                 </div>
                 <button type="button" id="btnBuscarFichajes" class="btn-buscar-fichajes" onclick="handleBuscarFichajes()">
                     🔍 Filtrar
@@ -843,9 +928,14 @@
             <h3 class="card-title" id="fichajesTitle" style="margin: 0; font-size: 18px; font-family: 'Outfit', sans-serif;">
                 Registros de Asistencia
             </h3>
-            <span id="fichajesCountBadge" style="font-size: 12px; color: var(--text-secondary); background: rgba(255, 255, 255, 0.05); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-                0 registros
-            </span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" class="btn-nuevo-fichaje-head role-admin-only" onclick="openModalNuevoFichajeManual()" style="font-size: 12px; padding: 6px 14px; background: #0284c7; color: #fff;" title="Cargar entrada o salida olvidada por un técnico">
+                    + Cargar Fichaje Olvidado
+                </button>
+                <span id="fichajesCountBadge" style="font-size: 12px; color: var(--text-secondary); background: rgba(255, 255, 255, 0.05); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    0 registros
+                </span>
+            </div>
         </div>
 
         <!-- Banner Modo Ahorro Firebase (Últimos 5 días) -->
@@ -950,12 +1040,20 @@
                         </div>
                     </div>
 
+                    <!-- Motivo / Observación del Fichaje Manual -->
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 5px;">
+                            Motivo / Observación (Opcional)
+                        </label>
+                        <input type="text" id="fichaje-observacion" placeholder="Ej: Olvido de fichaje por el técnico, corte de batería, etc." style="width: 100%; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 13px; outline: none;">
+                    </div>
+
                     <!-- GPS Status -->
                     <div>
                         <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 5px;">Ubicación</label>
                         <input type="text" value="📌 Manual (Sin GPS)" disabled style="width: 100%; padding: 8px 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 8px; font-size: 13px;">
                         <small style="display: block; color: var(--text-muted); font-size: 11px; margin-top: 4px;">
-                            ℹ Los fichajes manuales se identifican como ingresados administrativamente.
+                            ℹ Los fichajes manuales se identifican automáticamente como regularizados administrativamente.
                         </small>
                     </div>
 
@@ -1028,7 +1126,7 @@
         let currentUser = localStorage.getItem('electrofrio_user') || '';
 
         let editFichajeId = null;
-        let filterFichajesCollabs = [];
+        let filterFichajesCollabVal = "";
         let filterFichajesDesdeVal = '';
         let filterFichajesHastaVal = '';
         let filterFichajesSearchVal = '';
@@ -1103,6 +1201,82 @@
             return `${d}/${m}/${y}`;
         }
 
+        function parseTimeToMinutes(timeStr) {
+            if (!timeStr || typeof timeStr !== 'string') return null;
+            const clean = timeStr.trim().toLowerCase();
+            const isPM = clean.includes('p') || clean.includes('pm');
+            const isAM = clean.includes('a') || clean.includes('am');
+            const match = clean.match(/(\d{1,2}):(\d{2})/);
+            if (!match) return null;
+            let hours = parseInt(match[1], 10);
+            const minutes = parseInt(match[2], 10);
+            if (isPM && hours < 12) hours += 12;
+            if (isAM && hours === 12) hours = 0;
+            return hours * 60 + minutes;
+        }
+
+        function getFichajeStandardDate(f) {
+            const now = getSyncedDate();
+            const todayISO = getLocalISODate(now);
+            let d = null;
+            let iso = '';
+            let ar = '';
+
+            const dateStr = (f && typeof f === 'object') ? f.date : f;
+            const timestamp = (f && typeof f === 'object') ? f.timestamp : null;
+
+            if (dateStr === 'Hoy') {
+                d = now;
+                iso = todayISO;
+            } else if (dateStr && typeof dateStr === 'string' && dateStr.includes('-')) {
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
+                    iso = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                }
+            } else if (dateStr && typeof dateStr === 'string' && dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) {
+                    d = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10), 12, 0, 0);
+                    iso = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                }
+            }
+
+            if ((!d || isNaN(d.getTime())) && timestamp) {
+                try {
+                    const dt = new Date(timestamp);
+                    if (!isNaN(dt.getTime())) {
+                        d = dt;
+                        iso = getLocalISODate(dt);
+                    }
+                } catch(e) {}
+            }
+
+            if (!d || isNaN(d.getTime())) {
+                d = now;
+                iso = todayISO;
+            }
+
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            ar = `${day}/${month}/${year}`;
+
+            const rawDayName = d.toLocaleDateString('es-AR', { weekday: 'long' });
+            const dayName = rawDayName.charAt(0).toUpperCase() + rawDayName.slice(1);
+            const isToday = (iso === todayISO);
+
+            let fullTitle = '';
+            try {
+                const formatted = d.toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                fullTitle = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+            } catch(e) {
+                fullTitle = `${dayName}, ${ar}`;
+            }
+
+            return { d, iso, ar, dayName, isToday, fullTitle };
+        }
+
         function formatDateToAR(dateStr) {
             if (!dateStr) return '';
             if (dateStr.includes('/')) return dateStr;
@@ -1170,6 +1344,60 @@
             return false;
         }
 
+        // DEDUPLICACIÓN INTELIGENTE DE FICHAJES (Conserva un solo registro por fichaje)
+        function deduplicateFichajesList(list) {
+            if (!Array.isArray(list)) return [];
+            const cleanList = [];
+            // Ordenar de más antiguo a más nuevo para conservar el primer fichaje original
+            const sorted = [...list].sort((a, b) => {
+                const tA = a.timestamp ? new Date(a.timestamp).getTime() : ((parseTimeToMinutes(a.time) || 0) * 60000);
+                const tB = b.timestamp ? new Date(b.timestamp).getTime() : ((parseTimeToMinutes(b.time) || 0) * 60000);
+                return tA - tB;
+            });
+
+            for (const item of sorted) {
+                if (!item) continue;
+                const itemName = (item.name || item.username || '').trim().toLowerCase();
+                const itemType = (item.type || '').trim().toLowerCase();
+                const itemDateIso = getFichajeStandardDate(item).iso;
+                const itemMinutes = parseTimeToMinutes(item.time);
+                const itemTimeMs = item.timestamp ? new Date(item.timestamp).getTime() : 0;
+
+                const isDup = cleanList.some(s => {
+                    const sName = (s.name || s.username || '').trim().toLowerCase();
+                    const sType = (s.type || '').trim().toLowerCase();
+                    const sDateIso = getFichajeStandardDate(s).iso;
+                    const sMinutes = parseTimeToMinutes(s.time);
+                    const sTimeMs = s.timestamp ? new Date(s.timestamp).getTime() : 0;
+
+                    if (itemName !== sName || itemType !== sType) return false;
+                    if (itemDateIso !== sDateIso) return false;
+
+                    // Mismo técnico, mismo día, mismo tipo (Entrada o Salida):
+                    // 1. Si los minutos de hora difieren en 5 minutos o menos (ej: 8:00 vs 8:00 ó 8:02)
+                    if (itemMinutes !== null && sMinutes !== null && Math.abs(itemMinutes - sMinutes) <= 5) {
+                        return true;
+                    }
+                    // 2. Si los timestamps difieren en menos de 5 minutos (300.000 ms)
+                    if (itemTimeMs && sTimeMs && Math.abs(itemTimeMs - sTimeMs) < 300000) {
+                        return true;
+                    }
+                    // 3. Si el texto de hora coincide tras normalización básica
+                    if (item.time && s.time && item.time.replace(/\s+/g, '').toLowerCase() === s.time.replace(/\s+/g, '').toLowerCase()) {
+                        return true;
+                    }
+                    return false;
+                });
+
+                if (!isDup) {
+                    cleanList.push(item);
+                }
+            }
+
+            // Retornar en orden cronológico descendente (más recientes primero)
+            return cleanList.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+        }
+
         // GEOLOCALIZACIÓN (FÓRMULA DE HAVERSINE)
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // Radio de la Tierra en metros
@@ -1185,9 +1413,21 @@
         }
 
         function verifyGeolocationAndExecute(callback, onRejected) {
+            let executed = false;
+            const safeCallback = (...args) => {
+                if (executed) return;
+                executed = true;
+                callback(...args);
+            };
+            const safeRejected = () => {
+                if (executed) return;
+                executed = true;
+                if (onRejected) onRejected();
+            };
+
             if (!navigator.onLine) {
                 showToast("No tienes conexión a internet activa.", "error");
-                if (onRejected) onRejected();
+                safeRejected();
                 return;
             }
 
@@ -1212,7 +1452,7 @@
             }
 
             if (!navigator.geolocation) {
-                if (onRejected) onRejected();
+                safeRejected();
                 alert("Tu navegador o dispositivo no soporta geolocalización satelital.");
                 return;
             }
@@ -1220,28 +1460,30 @@
             function requestLocation(options, isRetry = false) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
+                        if (executed) return;
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
                         const distance = calculateDistance(userLat, userLng, allowedLat, allowedLng);
 
                         if (distance <= allowedRadius) {
-                            callback(collab, userLat, userLng);
+                            safeCallback(collab, userLat, userLng);
                         } else if (!isRetry) {
                             console.warn(`Distancia inicial (${Math.round(distance)}m) > ${allowedRadius}m. Reintentando con GPS satelital...`);
                             requestLocation({ enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }, true);
                         } else {
-                            if (onRejected) onRejected();
+                            safeRejected();
                             const msg = `No estás en el lugar autorizado para tomar el fichaje (distancia: ${Math.round(distance)}m). El rango permitido es de ${allowedRadius} metros a la redonda.`;
                             showToast(msg, "error");
                             alert(msg);
                         }
                     },
                     (error) => {
+                        if (executed) return;
                         if (!isRetry && (error.code === 2 || error.code === 3)) {
                             requestLocation({ enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }, true);
                             return;
                         }
-                        if (onRejected) onRejected();
+                        safeRejected();
                         let msg = "No se obtuvo tu ubicación GPS. Por favor activa la localización satelital.";
                         if (error.code === 1) msg = "Debes permitir el acceso a tu ubicación en tu navegador para poder fichar.";
                         else if (error.code === 3) msg = "Tiempo de espera agotado para obtener GPS. Intenta al aire libre.";
@@ -1296,6 +1538,10 @@
             const shiftStatusText = document.getElementById('shiftStatusText');
             const shiftStatusSubtext = document.getElementById('shiftStatusSubtext');
             if (!btnUnico) return;
+            if (isPunchingInProgress) {
+                btnUnico.disabled = true;
+                return;
+            }
 
             const name = currentName || "";
             const myFichajesToday = fichajes.filter(f => {
@@ -1378,15 +1624,24 @@
             }
         }
 
-        // EVENT LISTENER CLIC EN BOTÓN DE FICHAJE ÚNICO
-        document.getElementById('btnFicharUnico')?.addEventListener('click', async () => {
-            if (isPunchingInProgress) return;
+        // EVENT LISTENER CLIC EN BOTÓN DE FICHAJE ÚNICO (Con debounce y prevención de doble fichaje en Android)
+        let lastPunchClickTime = 0;
+        document.getElementById('btnFicharUnico')?.addEventListener('click', async (e) => {
+            if (e) e.preventDefault();
+            const clickNow = Date.now();
+            if (isPunchingInProgress || (clickNow - lastPunchClickTime < 4000)) {
+                console.warn("Fichaje en progreso o clic repetido bloqueado por seguridad.");
+                return;
+            }
+            lastPunchClickTime = clickNow;
             isPunchingInProgress = true;
 
             const btnUnico = document.getElementById('btnFicharUnico');
-            const originalText = btnUnico.textContent;
-            btnUnico.textContent = 'Validando GPS...';
-            btnUnico.disabled = true;
+            if (btnUnico) {
+                btnUnico.textContent = 'Validando GPS...';
+                btnUnico.disabled = true;
+                btnUnico.style.pointerEvents = 'none';
+            }
 
             try {
                 const now = getSyncedDate();
@@ -1409,6 +1664,7 @@
                         showToast(msg, "warning");
                         alert(msg);
                         isPunchingInProgress = false;
+                        if (btnUnico) btnUnico.style.pointerEvents = 'auto';
                         updateCollabFichajeUI();
                         return;
                     }
@@ -1419,20 +1675,72 @@
 
                 const resetBtn = () => {
                     isPunchingInProgress = false;
+                    if (btnUnico) btnUnico.style.pointerEvents = 'auto';
                     updateCollabFichajeUI();
                 };
 
                 verifyGeolocationAndExecute(async (collab, userLat, userLng) => {
                     try {
-                        btnUnico.textContent = 'Registrando...';
+                        if (btnUnico) btnUnico.textContent = 'Registrando...';
                         const punchNow = getSyncedDate();
                         const dateVal = getLocalISODate(punchNow);
                         const timeVal = formatTime12h(punchNow);
                         const timestampStr = punchNow.toISOString();
                         const isVerified = userLat !== null && userLng !== null;
 
-                        const nuevoFichaje = {
-                            id: `fichaje-${Date.now()}`,
+                        // 1. Guardia anti-duplicados previa en memoria (dentro de los últimos 3 minutos)
+                        const hasRecentDuplicate = fichajes.some(f => {
+                            const matchCollab = (f.name && currentName && f.name.trim().toLowerCase() === currentName.trim().toLowerCase()) ||
+                                                (f.username && currentUser && f.username.trim().toLowerCase() === currentUser.trim().toLowerCase());
+                            if (!matchCollab || f.type !== intendedType) return false;
+                            if (isFichajeToday(f.date, f.timestamp)) {
+                                if (f.timestamp) {
+                                    const diff = Math.abs(punchNow.getTime() - new Date(f.timestamp).getTime());
+                                    if (diff < 180000) return true;
+                                }
+                                if (f.date === dateVal && f.time === timeVal) return true;
+                            }
+                            return false;
+                        });
+
+                        if (hasRecentDuplicate) {
+                            showToast(`Ya registraste tu ${intendedType} hace un instante. No se duplicará.`, "info");
+                            return;
+                        }
+
+                        // 2. Guardia anti-duplicados directa en Firestore
+                        if (typeof db !== 'undefined' && db) {
+                            try {
+                                const checkSnap = await db.collection('fichajes')
+                                    .where('date', '==', dateVal)
+                                    .where('type', '==', intendedType)
+                                    .get();
+
+                                let foundOnlineDup = false;
+                                checkSnap.forEach(doc => {
+                                    const d = doc.data();
+                                    const matchCollab = (d.name && currentName && d.name.trim().toLowerCase() === currentName.trim().toLowerCase()) ||
+                                                        (d.username && currentUser && d.username.trim().toLowerCase() === currentUser.trim().toLowerCase());
+                                    if (matchCollab) {
+                                        if (d.timestamp) {
+                                            const diff = Math.abs(punchNow.getTime() - new Date(d.timestamp).getTime());
+                                            if (diff < 180000) foundOnlineDup = true;
+                                        } else if (d.time === timeVal) {
+                                            foundOnlineDup = true;
+                                        }
+                                    }
+                                });
+
+                                if (foundOnlineDup) {
+                                    showToast(`Tu ${intendedType} ya se encuentra registrada en el sistema.`, "info");
+                                    return;
+                                }
+                            } catch(e) {
+                                console.warn("Validación de duplicados en línea omitida:", e);
+                            }
+                        }
+
+                        const nuevoFichajeData = {
                             name: currentName,
                             username: currentUser,
                             date: dateVal,
@@ -1447,26 +1755,26 @@
                             }
                         };
 
-                        // 1. Guardar localmente
-                        fichajes.unshift(nuevoFichaje);
-                        localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
-                        renderAll();
-                        updateCollabFichajeUI();
+                        let assignedId = `fichaje-${Date.now()}`;
 
-                        // 2. Guardar en Firestore con safe-mode check
-                        const docRef = await db.collection('fichajes').add(nuevoFichaje);
-                        nuevoFichaje.id = docRef.id;
+                        // 3. Guardar en Firestore con el ID nativo del documento (idempotente)
+                        if (typeof db !== 'undefined' && db) {
+                            const docRef = await db.collection('fichajes').add(nuevoFichajeData);
+                            assignedId = docRef.id;
 
-                        if (collab && collab.uid) {
-                            await db.collection('usuarios').doc(collab.uid).update({
-                                status: intendedType === 'Entrada' ? 'online' : 'offline'
-                            }).catch(() => {});
+                            if (collab && collab.uid) {
+                                await db.collection('usuarios').doc(collab.uid).update({
+                                    status: intendedType === 'Entrada' ? 'online' : 'offline'
+                                }).catch(() => {});
+                            }
                         }
 
+                        const nuevoFichaje = { id: assignedId, ...nuevoFichajeData };
+                        fichajes.unshift(nuevoFichaje);
+                        fichajes = deduplicateFichajesList(fichajes);
                         localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
-                        renderAll();
-                        updateCollabFichajeUI();
 
+                        renderAll();
                         showToast(`¡${intendedType} registrada con éxito!`, 'success');
                         
                         // Notificar al index si estamos dentro de un iframe
@@ -1478,6 +1786,7 @@
                         showToast("Fichaje guardado en modo local.", "warning");
                     } finally {
                         isPunchingInProgress = false;
+                        if (btnUnico) btnUnico.style.pointerEvents = 'auto';
                         updateCollabFichajeUI();
                     }
                 }, resetBtn);
@@ -1486,6 +1795,7 @@
                 console.error(err);
                 showToast("Error validando el fichaje.", "error");
                 isPunchingInProgress = false;
+                if (btnUnico) btnUnico.style.pointerEvents = 'auto';
                 updateCollabFichajeUI();
             }
         });
@@ -1605,8 +1915,6 @@
                 const didFichar = myFichajes.length > 0;
                 const hasEntrada = entradas.length > 0;
                 const hasSalida = salidas.length > 0;
-                const firstEntrada = hasEntrada ? entradas[0] : null;
-                const lastSalida = hasSalida ? salidas[salidas.length - 1] : null;
                 const latest = didFichar ? myFichajes[myFichajes.length - 1] : null;
 
                 let category = '';
@@ -1622,32 +1930,27 @@
                     quickActionHtml = `<button type="button" class="btn-nuevo-fichaje-head" style="font-size: 11px; padding: 5px 10px;" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${selectedISO}')">+ Entrada</button>`;
                 } else {
                     countDidFichar++;
-                    if (hasEntrada && !hasSalida) {
-                        category = 'missing_out';
-                        countMissingOut++;
-                        statusBadge = `<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 En Turno (Falta Salida)</span>`;
-                        quickActionHtml = `<button type="button" class="btn-nuevo-fichaje-head" style="background:#ef4444; color:#fff; font-size: 11px; padding: 5px 10px;" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${selectedISO}')">+ Salida</button>`;
-                    } else if (!hasEntrada && hasSalida) {
+                    if (!hasEntrada && hasSalida) {
                         category = 'missing_in';
                         countMissingIn++;
                         statusBadge = `<span style="background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.35); padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟠 Falta Entrada</span>`;
                         quickActionHtml = `<button type="button" class="btn-nuevo-fichaje-head" style="font-size: 11px; padding: 5px 10px;" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${selectedISO}')">+ Entrada</button>`;
+                    } else if (entradas.length > salidas.length) {
+                        category = 'missing_out';
+                        countMissingOut++;
+                        const turnLbl = entradas.length > 1 ? ` (Falta ${entradas.length}ª Salida)` : ' (Falta Salida)';
+                        statusBadge = `<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 En Turno${turnLbl}</span>`;
+                        quickActionHtml = `<button type="button" class="btn-nuevo-fichaje-head" style="background:#ef4444; color:#fff; font-size: 11px; padding: 5px 10px;" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${selectedISO}')">+ Salida</button>`;
                     } else {
-                        if (latest && latest.type === 'Entrada') {
-                            category = 'missing_out';
-                            countMissingOut++;
-                            statusBadge = `<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 Reingresó (Falta Salida)</span>`;
-                            quickActionHtml = `<button type="button" class="btn-nuevo-fichaje-head" style="background:#ef4444; color:#fff; font-size: 11px; padding: 5px 10px;" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${selectedISO}')">+ Salida</button>`;
-                        } else {
-                            category = 'complete';
-                            countComplete++;
-                            statusBadge = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟢 Jornada Completa</span>`;
-                            quickActionHtml = `<button type="button" class="btn-table-action" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${selectedISO}')" title="Agregar Fichaje">+</button>`;
-                        }
+                        category = 'complete';
+                        countComplete++;
+                        const shiftsLbl = entradas.length >= 2 ? ` (${entradas.length} Turnos Completos)` : '';
+                        statusBadge = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟢 Jornada Completa${shiftsLbl}</span>`;
+                        quickActionHtml = `<button type="button" class="btn-table-action" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${selectedISO}')" title="Agregar Fichaje">+</button>`;
                     }
                 }
 
-                return { collab, didFichar, hasEntrada, hasSalida, firstEntrada, lastSalida, category, statusBadge, quickActionHtml };
+                return { collab, didFichar, hasEntrada, hasSalida, entradas, salidas, category, statusBadge, quickActionHtml };
             });
 
             // Actualizar contadores
@@ -1693,18 +1996,39 @@
                 const tr = document.createElement('tr');
                 const initials = (item.collab.name || '??').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
+                const entradas = item.entradas || [];
+                const salidas = item.salidas || [];
+
                 let entText = `<span style="color: #ef4444; font-size: 12px;">⚠️ Falta Entrada</span>`;
-                if (item.firstEntrada) {
-                    const isGps = item.firstEntrada.gps && item.firstEntrada.gps.verified;
-                    entText = `<span style="color: #10b981; font-weight: 600;">${isGps ? '📍' : '📌'} ${item.firstEntrada.time}</span>`;
+                if (entradas.length === 1) {
+                    const isGps = entradas[0].gps && entradas[0].gps.verified;
+                    entText = `<span style="color: #10b981; font-weight: 600;">${isGps ? '📍' : '📌'} ${entradas[0].time}</span>`;
+                } else if (entradas.length > 1) {
+                    entText = entradas.map((e, idx) => {
+                        const isGps = e.gps && e.gps.verified;
+                        return `<div style="font-size: 12px; margin-bottom: 2px;"><strong style="color: #38bdf8;">${idx + 1}ª:</strong> <span style="color: #10b981; font-weight: 600;">${isGps ? '📍' : '📌'} ${e.time}</span></div>`;
+                    }).join('');
                 }
 
                 let salText = `<span style="color: var(--text-muted); font-size: 12px;">❌ Sin Fichar</span>`;
-                if (item.lastSalida) {
-                    const isGps = item.lastSalida.gps && item.lastSalida.gps.verified;
-                    salText = `<span style="color: #f87171; font-weight: 600;">${isGps ? '📍' : '📌'} ${item.lastSalida.time}</span>`;
-                } else if (item.hasEntrada) {
-                    salText = `<span style="color: #fbbf24; font-size: 12px;">⏳ Falta Salida</span>`;
+                if (salidas.length === 0 && entradas.length > 0) {
+                    salText = `<span style="color: #fbbf24; font-size: 12px; font-weight: 600;">⏳ Falta Salida</span>`;
+                } else if (salidas.length === 1 && entradas.length <= 1) {
+                    const isGps = salidas[0].gps && salidas[0].gps.verified;
+                    salText = `<span style="color: #f87171; font-weight: 600;">${isGps ? '📍' : '📌'} ${salidas[0].time}</span>`;
+                } else if (salidas.length > 0 || entradas.length > 1) {
+                    const maxShifts = Math.max(entradas.length, salidas.length);
+                    const lines = [];
+                    for (let sIdx = 0; sIdx < maxShifts; sIdx++) {
+                        const sal = salidas[sIdx];
+                        if (sal) {
+                            const isGps = sal.gps && sal.gps.verified;
+                            lines.push(`<div style="font-size: 12px; margin-bottom: 2px;"><strong style="color: #f43f5e;">${sIdx + 1}ª:</strong> <span style="color: #f87171; font-weight: 600;">${isGps ? '📍' : '📌'} ${sal.time}</span></div>`);
+                        } else {
+                            lines.push(`<div style="font-size: 12px; margin-bottom: 2px;"><strong style="color: #f43f5e;">${sIdx + 1}ª:</strong> <span style="color: #fbbf24; font-size: 11px; font-weight: 600;">⏳ Falta Salida</span></div>`);
+                        }
+                    }
+                    salText = lines.join('');
                 }
 
                 tr.innerHTML = `
@@ -1737,6 +2061,9 @@
             const countBadge = document.getElementById('fichajesCountBadge');
             if (!tableBody) return;
 
+            // Asegurar deduplicación inmediata en memoria para evitar registros duplicados en pantalla
+            fichajes = deduplicateFichajesList(fichajes);
+
             let list = [];
             if (currentRole === 'Colaborador') {
                 const name = currentName || "";
@@ -1749,9 +2076,11 @@
             } else {
                 if (titleEl) titleEl.textContent = "Historial General de Fichajes";
                 list = fichajes.filter(f => {
-                    if (filterFichajesCollabs.length > 0) {
-                        const match = filterFichajesCollabs.some(c => c.trim().toLowerCase() === (f.name || '').trim().toLowerCase());
-                        if (!match) return false;
+                    if (filterFichajesCollabVal) {
+                        const target = filterFichajesCollabVal.trim().toLowerCase();
+                        const matchName = (f.name || '').trim().toLowerCase() === target;
+                        const matchUser = (f.username || '').trim().toLowerCase() === target;
+                        if (!matchName && !matchUser) return false;
                     }
 
                     // Si no se cargó el historial completo y no especificó fecha "Desde", limitar estrictamente a 5 días atrás
@@ -1783,43 +2112,176 @@
                 return;
             }
 
+            // 1. Agrupar fichajes estrictamente por DÍA
+            const dayGroupsMap = new Map();
             list.forEach(f => {
-                const tr = document.createElement('tr');
+                const dateInfo = getFichajeStandardDate(f);
+                if (!dayGroupsMap.has(dateInfo.iso)) {
+                    dayGroupsMap.set(dateInfo.iso, {
+                        iso: dateInfo.iso,
+                        dateInfo: dateInfo,
+                        records: []
+                    });
+                }
+                dayGroupsMap.get(dateInfo.iso).records.push(f);
+            });
 
-                const typeBadge = f.type === 'Entrada'
-                    ? `<span class="badge-entrada"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg> Entrada</span>`
-                    : `<span class="badge-salida"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="14 17 9 12 14 7"></polyline><line x1="9" y1="12" x2="21" y2="12"></line></svg> Salida</span>`;
+            // Ordenar los días cronológicamente descendente (el día más reciente primero)
+            const sortedDays = Array.from(dayGroupsMap.values()).sort((a, b) => b.iso.localeCompare(a.iso));
 
-                let gpsBadge = `<span class="badge-gps-manual">📌 Manual</span>`;
-                if (f.gps && f.gps.verified && f.gps.lat && f.gps.lng) {
-                    const mapsUrl = `https://www.google.com/maps?q=${f.gps.lat},${f.gps.lng}`;
-                    gpsBadge = `<a href="${mapsUrl}" target="_blank" class="badge-gps-verified" title="Ver en Google Maps (${f.gps.lat.toFixed(5)}, ${f.gps.lng.toFixed(5)})">📍 GPS Verificado ↗</a>`;
+            sortedDays.forEach((dayGroup, dayIndex) => {
+                // Analizar colaboradores del día para calcular turnos múltiples y detectar faltantes
+                const collabMap = new Map();
+                dayGroup.records.forEach(r => {
+                    const key = (r.name || 'Sin Nombre').trim().toLowerCase();
+                    if (!collabMap.has(key)) collabMap.set(key, []);
+                    collabMap.get(key).push(r);
+                });
+
+                let dayIncompleteCount = 0;
+                collabMap.forEach((userRecords) => {
+                    userRecords.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+                    const totalEnt = userRecords.filter(x => x.type === 'Entrada').length;
+                    const totalSal = userRecords.filter(x => x.type === 'Salida').length;
+                    if (totalEnt !== totalSal) {
+                        dayIncompleteCount++;
+                    }
+
+                    // Asignar numeración de turno y alertar si falta entrada o salida
+                    let entCount = 0;
+                    let salCount = 0;
+                    userRecords.forEach(rec => {
+                        if (rec.type === 'Entrada') {
+                            entCount++;
+                            rec._turnNumber = entCount;
+                            rec._totalInDay = totalEnt;
+                            rec._isMissingExit = (entCount > totalSal);
+                        } else {
+                            salCount++;
+                            rec._turnNumber = salCount;
+                            rec._totalInDay = totalSal;
+                            rec._isMissingEntry = (salCount > totalEnt);
+                        }
+                    });
+                });
+
+                const uniqueCollabsCount = collabMap.size;
+                let dayStatusBadge = '';
+                if (dayIncompleteCount > 0) {
+                    dayStatusBadge = `<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">⚠️ ${dayIncompleteCount} con fichaje incompleto</span>`;
+                } else {
+                    dayStatusBadge = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">✅ Entradas y Salidas Completas</span>`;
                 }
 
-                const actionsHtml = currentRole === 'Administrador' ? `
-                    <div style="display: flex; gap: 6px; justify-content: center;">
-                        <button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${f.id}')" title="Ver Detalle del Fichaje">👁️</button>
-                        <button type="button" class="btn-table-action" onclick="openModalEditarFichaje('${f.id}')" title="Editar Fichaje">✏️</button>
-                        <button type="button" class="btn-table-action delete" onclick="eliminarFichaje('${f.id}')" title="Eliminar Fichaje">🗑️</button>
-                    </div>
-                ` : `
-                    <div style="display: flex; gap: 6px; justify-content: center;">
-                        <button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${f.id}')" title="Ver Detalle del Fichaje">👁️</button>
-                    </div>
-                `;
-
-                tr.innerHTML = `
-                    <td data-label="Colaborador">
-                        <strong style="color: var(--text-primary); font-size: 13px;">${f.name || 'Sin Nombre'}</strong>
-                        ${f.username ? `<span style="color: var(--text-muted); font-size: 11px; margin-left: 4px;">(@${f.username})</span>` : ''}
+                // Fila Divisoria de Día con línea en gris y gap visual
+                const trDay = document.createElement('tr');
+                trDay.className = 'fichajes-day-divider';
+                trDay.innerHTML = `
+                    <td colspan="6">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <div class="fichajes-day-title">
+                                <span style="font-size: 16px;">📅</span>
+                                <span style="font-size: 14px; font-weight: 700;">${dayGroup.dateInfo.fullTitle}</span>
+                                ${dayGroup.dateInfo.isToday ? '<span style="background: #0284c7; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Hoy</span>' : ''}
+                            </div>
+                            <div style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span>👥 <strong>${uniqueCollabsCount}</strong> técnico${uniqueCollabsCount === 1 ? '' : 's'}</span>
+                                <span>•</span>
+                                <span>📋 <strong>${dayGroup.records.length}</strong> fichaje${dayGroup.records.length === 1 ? '' : 's'}</span>
+                                ${dayStatusBadge}
+                                <button type="button" class="role-admin-only" onclick="openModalNuevoFichajeParaDia('${dayGroup.iso}')" style="background: rgba(2, 132, 199, 0.15); border: 1px solid var(--color-blue); color: var(--color-blue); font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-weight: 700;" title="Cargar un fichaje olvidado en este día">
+                                    + Cargar en este Día
+                                </button>
+                            </div>
+                        </div>
                     </td>
-                    <td data-label="Fecha">${formatDateToAR(f.date)}</td>
-                    <td data-label="Hora" style="font-weight: 600;">${f.time || '--:--'}</td>
-                    <td data-label="Tipo">${typeBadge}</td>
-                    <td data-label="GPS / Ubicación">${gpsBadge}</td>
-                    <td data-label="Acciones" class="role-admin-only" style="text-align: center;">${actionsHtml}</td>
                 `;
-                tableBody.appendChild(tr);
+                tableBody.appendChild(trDay);
+
+                // Ordenar los registros del día agrupando por técnico y luego cronológicamente por hora
+                dayGroup.records.sort((a, b) => {
+                    const nameA = (a.name || '').toLowerCase();
+                    const nameB = (b.name || '').toLowerCase();
+                    if (nameA !== nameB) return nameA.localeCompare(nameB);
+                    return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
+                });
+
+                let lastCollabName = '';
+                dayGroup.records.forEach((f, recIdx) => {
+                    const tr = document.createElement('tr');
+                    const currentCollab = (f.name || '').trim().toLowerCase();
+                    const isNewCollab = (lastCollabName !== '' && lastCollabName !== currentCollab);
+                    lastCollabName = currentCollab;
+
+                    if (isNewCollab) {
+                        tr.style.borderTop = '1px dashed rgba(255, 255, 255, 0.12)';
+                    }
+
+                    // Badge de Tipo con turno (si hay más de 1 turno en el día) y acción rápida para cargar el fichaje omitido
+                    let typeBadge = '';
+                    const turnSuffix = (f._totalInDay > 1 || f._turnNumber > 1) ? ` (${f._turnNumber}º Turno)` : '';
+                    const safeName = (f.name || '').replace(/'/g, "\\'");
+
+                    if (f.type === 'Entrada') {
+                        let missingBadge = f._isMissingExit ? `
+                            <button type="button" class="fichaje-subturn-badge subturn-missing-out" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${dayGroup.iso}')" title="Clic para cargar la salida olvidada de ${safeName}" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(245, 158, 11, 0.5);">
+                                ⏳ Falta Salida <strong style="text-decoration: underline;">+ Cargar</strong>
+                            </button>
+                        ` : '';
+                        typeBadge = `
+                            <span class="badge-entrada"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg> Entrada${turnSuffix}</span>
+                            ${missingBadge}
+                        `;
+                    } else {
+                        let missingBadge = f._isMissingEntry ? `
+                            <button type="button" class="fichaje-subturn-badge subturn-missing-in" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${dayGroup.iso}')" title="Clic para cargar la entrada olvidada de ${safeName}" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(239, 68, 68, 0.5);">
+                                ⚠️ Falta Entrada <strong style="text-decoration: underline;">+ Cargar</strong>
+                            </button>
+                        ` : '';
+                        typeBadge = `
+                            <span class="badge-salida"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="14 17 9 12 14 7"></polyline><line x1="9" y1="12" x2="21" y2="12"></line></svg> Salida${turnSuffix}</span>
+                            ${missingBadge}
+                        `;
+                    }
+
+                    let gpsBadge = `<span class="badge-gps-manual">📌 Manual</span>`;
+                    if (f.gps && f.gps.verified && f.gps.lat && f.gps.lng) {
+                        const mapsUrl = `https://www.google.com/maps?q=${f.gps.lat},${f.gps.lng}`;
+                        gpsBadge = `<a href="${mapsUrl}" target="_blank" class="badge-gps-verified" title="Ver en Google Maps (${f.gps.lat.toFixed(5)}, ${f.gps.lng.toFixed(5)})">📍 GPS Verificado ↗</a>`;
+                    }
+
+                    const actionsHtml = currentRole === 'Administrador' ? `
+                        <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                            <button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${f.id}')" title="Ver Detalle del Fichaje">👁️</button>
+                            <button type="button" class="btn-table-action" onclick="openModalEditarFichaje('${f.id}')" title="Editar Fichaje">✏️</button>
+                            <button type="button" class="btn-table-action" onclick="openModalFichajeForCollab('${safeName}', '${f.type === 'Entrada' ? 'Salida' : 'Entrada'}', '${dayGroup.iso}')" title="Cargar fichaje complementario para ${safeName}">+➕</button>
+                            <button type="button" class="btn-table-action delete" onclick="eliminarFichaje('${f.id}')" title="Eliminar Fichaje">🗑️</button>
+                        </div>
+                    ` : `
+                        <div style="display: flex; gap: 6px; justify-content: center;">
+                            <button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${f.id}')" title="Ver Detalle del Fichaje">👁️</button>
+                        </div>
+                    `;
+
+                    tr.innerHTML = `
+                        <td data-label="Colaborador">
+                            <strong style="color: var(--text-primary); font-size: 13px;">${f.name || 'Sin Nombre'}</strong>
+                            ${f.username ? `<span style="color: var(--text-muted); font-size: 11px; margin-left: 4px;">(@${f.username})</span>` : ''}
+                            ${f.observacion ? `<div style="font-size: 11px; color: #fbbf24; margin-top: 2px;" title="${f.observacion}">📝 ${f.observacion}</div>` : ''}
+                        </td>
+                        <td data-label="Fecha">
+                            <div style="font-weight: 600; color: var(--text-primary);">${dayGroup.dateInfo.ar}</div>
+                            <div style="font-size: 11px; color: #38bdf8; font-weight: 700; text-transform: capitalize; margin-top: 2px;">
+                                ${dayGroup.dateInfo.dayName}
+                            </div>
+                        </td>
+                        <td data-label="Hora" style="font-weight: 600;">${f.time || '--:--'}</td>
+                        <td data-label="Tipo">${typeBadge}</td>
+                        <td data-label="GPS / Ubicación">${gpsBadge}</td>
+                        <td data-label="Acciones" class="role-admin-only" style="text-align: center;">${actionsHtml}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
             });
         }
 
@@ -1827,42 +2289,52 @@
         // FILTROS AVANZADOS
         // ==============================================================
         function populateCollabFiltersList() {
-            const container = document.getElementById('fichajesCollabFilterList');
-            if (!container) return;
-            container.innerHTML = `
-                <label class="collab-chip-label" style="font-weight: 700; color: var(--color-blue);">
-                    <input type="checkbox" id="fichajesCollabAll" checked onchange="handleSelectAllCollabs(this.checked)">
-                    Todos
-                </label>
-            `;
+            const selectEl = document.getElementById('filterFichajesCollab');
+            if (!selectEl) return;
+            
+            const currentVal = selectEl.value;
+            selectEl.innerHTML = '<option value="">Todos los técnicos</option>';
 
-            colaboradores.forEach(c => {
-                if (c.role === 'Colaborador' || !c.role) {
-                    const lbl = document.createElement('label');
-                    lbl.className = 'collab-chip-label';
-                    lbl.innerHTML = `<input type="checkbox" class="fichajes-collab-check" value="${c.name}"> ${c.name}`;
-                    container.appendChild(lbl);
-                }
+            const sortedCollabs = [...colaboradores]
+                .filter(c => c.role === 'Colaborador' || !c.role)
+                .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+            sortedCollabs.forEach(c => {
+                if (!c.name) return;
+                const opt = document.createElement('option');
+                opt.value = c.name;
+                opt.textContent = c.name + (c.username ? ` (@${c.username})` : '');
+                selectEl.appendChild(opt);
             });
+
+            if (currentVal && Array.from(selectEl.options).some(o => o.value === currentVal)) {
+                selectEl.value = currentVal;
+            }
         }
 
-        function handleSelectAllCollabs(checked) {
-            document.querySelectorAll('.fichajes-collab-check').forEach(cb => cb.checked = false);
-            filterFichajesCollabs = [];
+        function resetFichajesFilters() {
+            const selectEl = document.getElementById('filterFichajesCollab');
+            if (selectEl) selectEl.value = '';
+
+            const desdeEl = document.getElementById('filterFichajesDesde');
+            if (desdeEl) desdeEl.value = '';
+
+            const hastaEl = document.getElementById('filterFichajesHasta');
+            if (hastaEl) hastaEl.value = '';
+
+            const searchEl = document.getElementById('filterFichajesSearch');
+            if (searchEl) searchEl.value = '';
+
+            handleBuscarFichajes();
         }
 
         function handleBuscarFichajes() {
-            const checkAll = document.getElementById('fichajesCollabAll');
-            if (checkAll && checkAll.checked) {
-                filterFichajesCollabs = [];
-            } else {
-                const checks = document.querySelectorAll('.fichajes-collab-check:checked');
-                filterFichajesCollabs = Array.from(checks).map(c => c.value);
-            }
+            const selectEl = document.getElementById('filterFichajesCollab');
+            filterFichajesCollabVal = selectEl ? selectEl.value.trim() : '';
 
-            filterFichajesDesdeVal = document.getElementById('filterFichajesDesde').value;
-            filterFichajesHastaVal = document.getElementById('filterFichajesHasta').value;
-            filterFichajesSearchVal = document.getElementById('filterFichajesSearch').value.trim();
+            filterFichajesDesdeVal = document.getElementById('filterFichajesDesde') ? document.getElementById('filterFichajesDesde').value : '';
+            filterFichajesHastaVal = document.getElementById('filterFichajesHasta') ? document.getElementById('filterFichajesHasta').value : '';
+            filterFichajesSearchVal = document.getElementById('filterFichajesSearch') ? document.getElementById('filterFichajesSearch').value.trim() : '';
 
             renderFichajesTable();
         }
@@ -1929,8 +2401,14 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); align-items: center;">
                         <span style="color: var(--text-secondary);">Método de Registro:</span>
-                        <span>${isGps ? '<span style="color: #10b981; font-weight: 700;">📍 Verificado por Satélite (GPS)</span>' : '<span style="color: #f59e0b; font-weight: 600;">📌 Registro Manual</span>'}</span>
+                        <span>${isGps ? '<span style="color: #10b981; font-weight: 700;">📍 Verificado por Satélite (GPS)</span>' : '<span style="color: #f59e0b; font-weight: 600;">📌 Registro Manual (Cargado en Administración)</span>'}</span>
                     </div>
+                    ${f.observacion ? `
+                    <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px; margin-top: 4px;">
+                        <div style="font-size: 11px; color: #fbbf24; font-weight: 700; margin-bottom: 4px;">📝 MOTIVO / OBSERVACIÓN</div>
+                        <div style="color: var(--text-primary); font-size: 13px;">${f.observacion}</div>
+                    </div>
+                    ` : ''}
                     ${isGps ? `
                     <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 4px;">
                         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">COORDENADAS SATELITALES</div>
@@ -1955,13 +2433,16 @@
 
         window.openModalNuevoFichajeManual = function() {
             editFichajeId = null;
-            document.getElementById('modalFichajeHeaderText').textContent = "Registrar Fichaje Manual";
-            document.getElementById('btnSubmitFichajeModal').textContent = "Registrar Fichaje";
+            document.getElementById('modalFichajeHeaderText').textContent = "Registrar Fichaje Manual / Olvidado";
+            document.getElementById('btnSubmitFichajeModal').textContent = "Guardar Fichaje";
 
             document.getElementById('fichajeCollabGroup').style.display = 'block';
             document.getElementById('fichajeCollabNameGroup').style.display = 'none';
             document.getElementById('fichaje-collab').required = true;
             populateModalCollabsSelect();
+
+            const obsInput = document.getElementById('fichaje-observacion');
+            if (obsInput) obsInput.value = '';
 
             const now = getSyncedDate();
             document.getElementById('fichaje-date').value = getLocalISODate(now);
@@ -1974,12 +2455,30 @@
             document.getElementById('modalFichaje').classList.add('show');
         };
 
+        window.openModalNuevoFichajeParaDia = function(targetDate) {
+            openModalNuevoFichajeManual();
+            if (targetDate) {
+                document.getElementById('fichaje-date').value = targetDate;
+            }
+        };
+
         window.openModalFichajeForCollab = function(collabName, defaultType = 'Entrada', targetDate = null) {
             openModalNuevoFichajeManual();
             const select = document.getElementById('fichaje-collab');
-            if (select && collabName) select.value = collabName;
-            if (targetDate) document.getElementById('fichaje-date').value = targetDate;
-            setFichajeType(defaultType);
+            if (select && collabName) {
+                const opt = Array.from(select.options).find(o => 
+                    o.value.trim().toLowerCase() === collabName.trim().toLowerCase() ||
+                    o.text.trim().toLowerCase().startsWith(collabName.trim().toLowerCase())
+                );
+                if (opt) select.value = opt.value;
+                else select.value = collabName;
+            }
+            if (targetDate) {
+                document.getElementById('fichaje-date').value = targetDate;
+            }
+            if (defaultType) {
+                setFichajeType(defaultType);
+            }
         };
 
         window.openModalEditarFichaje = function(id) {
@@ -1997,14 +2496,19 @@
 
             document.getElementById('fichaje-date').value = f.date;
             document.getElementById('fichaje-time').value = formatTime12hTo24h(f.time);
-            setFichajeType(f.type || 'Entrada');
+            
+            const obsInput = document.getElementById('fichaje-observacion');
+            if (obsInput) obsInput.value = f.observacion || '';
 
+            setFichajeType(f.type || 'Entrada');
             document.getElementById('modalFichaje').classList.add('show');
         };
 
         window.closeModalFichaje = function() {
             document.getElementById('modalFichaje').classList.remove('show');
             document.getElementById('formFichaje').reset();
+            const obsInput = document.getElementById('fichaje-observacion');
+            if (obsInput) obsInput.value = '';
             setFichajeType('');
             editFichajeId = null;
         };
@@ -2031,6 +2535,7 @@
             }
 
             const gpsObj = { manual: true, verified: false };
+            const obsVal = document.getElementById('fichaje-observacion') ? document.getElementById('fichaje-observacion').value.trim() : '';
             const submitBtn = document.getElementById('btnSubmitFichajeModal');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Guardando...';
@@ -2043,17 +2548,19 @@
                 const username = collabObj ? collabObj.username || '' : '';
 
                 if (editFichajeId) {
-                    await db.collection('fichajes').doc(editFichajeId).update({
+                    const updatePayload = {
                         date: dateVal,
                         time: formattedTime,
                         timestamp: timestampStr,
                         type: typeVal,
-                        gps: gpsObj
-                    });
+                        gps: gpsObj,
+                        observacion: obsVal
+                    };
+                    await db.collection('fichajes').doc(editFichajeId).update(updatePayload);
 
                     const idx = fichajes.findIndex(f => f.id === editFichajeId);
                     if (idx > -1) {
-                        fichajes[idx] = { ...fichajes[idx], date: dateVal, time: formattedTime, timestamp: timestampStr, type: typeVal, gps: gpsObj };
+                        fichajes[idx] = { ...fichajes[idx], ...updatePayload };
                     }
                     showToast("Fichaje actualizado con éxito", "success");
                 } else {
@@ -2064,7 +2571,8 @@
                         time: formattedTime,
                         timestamp: timestampStr,
                         type: typeVal,
-                        gps: gpsObj
+                        gps: gpsObj,
+                        observacion: obsVal
                     };
                     const docRef = await db.collection('fichajes').add(nuevo);
                     nuevo.id = docRef.id;
@@ -2119,12 +2627,11 @@
                 showToast("Cargando historial anterior desde Firebase...", "info");
                 const snap = await db.collection('fichajes').orderBy('timestamp', 'desc').limit(300).get();
                 const hist = [];
-                snap.forEach(doc => hist.push({ id: doc.id, ...doc.data() }));
+                snap.forEach(doc => hist.push({ ...doc.data(), id: doc.id }));
 
                 const currentIds = new Set(fichajes.map(f => f.id));
                 const merged = [...fichajes, ...hist.filter(f => !currentIds.has(f.id))];
-                merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                fichajes = merged;
+                fichajes = deduplicateFichajesList(merged);
                 historialCompletoCargado = true;
                 localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
 
@@ -2199,11 +2706,11 @@
             populateCollabFiltersList();
             populateModalCollabsSelect();
 
-            // 3. Fichajes desde caché
+            // 3. Fichajes desde caché (con deduplicación automática)
             const cachedFichajes = localStorage.getItem('electrofrio_fichajes');
             if (cachedFichajes) {
                 try {
-                    fichajes = JSON.parse(cachedFichajes);
+                    fichajes = deduplicateFichajesList(JSON.parse(cachedFichajes));
                     fichajes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 } catch(e) {}
             }
@@ -2237,13 +2744,15 @@
                     .where('timestamp', '>=', cincoDiasAtrasISO)
                     .onSnapshot((snap) => {
                         const updated = [];
-                        snap.forEach(doc => updated.push({ id: doc.id, ...doc.data() }));
+                        snap.forEach(doc => {
+                            const data = doc.data();
+                            updated.push({ ...data, id: doc.id });
+                        });
                         updated.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
                         const currentIds = new Set(updated.map(f => f.id));
                         const merged = [...updated, ...fichajes.filter(f => !currentIds.has(f.id))];
-                        merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                        fichajes = merged;
+                        fichajes = deduplicateFichajesList(merged);
                         localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
 
                         renderAll();
@@ -2253,6 +2762,137 @@
                     });
             } catch(e) {}
         }
+
+        // ==============================================================
+        // HERRAMIENTA DE LIMPIEZA DE DUPLICADOS EN BASE DE DATOS
+        // ==============================================================
+        window.cleanDuplicateFichajes = async function() {
+            if (currentRole !== 'Administrador') {
+                showToast("Solo los administradores pueden ejecutar la limpieza de duplicados.", "warning");
+                return;
+            }
+
+            if (!confirm("¿Deseas analizar la base de datos para detectar y eliminar fichajes duplicados (mismo colaborador y horario repetido)?")) {
+                return;
+            }
+
+            const btn = document.getElementById('btnLimpiarDuplicados');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Analizando...';
+            }
+
+            try {
+                showToast("Consultando registros en Firebase...", "info");
+                let allFichajes = [...fichajes];
+                if (typeof db !== 'undefined' && db) {
+                    try {
+                        const snap = await db.collection('fichajes').orderBy('timestamp', 'desc').limit(500).get();
+                        const remoteList = [];
+                        snap.forEach(doc => {
+                            remoteList.push({ ...doc.data(), id: doc.id });
+                        });
+                        if (remoteList.length > 0) {
+                            const rIds = new Set(remoteList.map(r => r.id));
+                            allFichajes = [...remoteList, ...fichajes.filter(f => !rIds.has(f.id))];
+                        }
+                    } catch(e) {
+                        console.warn("Aviso al leer registros remotos:", e);
+                    }
+                }
+
+                // Ordenar cronológicamente (más antiguo primero para conservar el registro original)
+                allFichajes.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
+
+                const toDeleteIds = [];
+                const cleanList = [];
+
+                for (const item of allFichajes) {
+                    const itemName = (item.name || item.username || '').trim().toLowerCase();
+                    const itemType = (item.type || '').trim().toLowerCase();
+                    const itemDateIso = getFichajeStandardDate(item).iso;
+                    const itemMinutes = parseTimeToMinutes(item.time);
+                    const itemTimeMs = item.timestamp ? new Date(item.timestamp).getTime() : 0;
+
+                    const duplicateMatch = cleanList.find(s => {
+                        const sName = (s.name || s.username || '').trim().toLowerCase();
+                        const sType = (s.type || '').trim().toLowerCase();
+                        const sDateIso = getFichajeStandardDate(s).iso;
+                        const sMinutes = parseTimeToMinutes(s.time);
+                        const sTimeMs = s.timestamp ? new Date(s.timestamp).getTime() : 0;
+
+                        if (itemName !== sName || itemType !== sType) return false;
+                        if (itemDateIso !== sDateIso) return false;
+
+                        // 1. Minutos iguales o diferencia menor o igual a 5 minutos
+                        if (itemMinutes !== null && sMinutes !== null && Math.abs(itemMinutes - sMinutes) <= 5) return true;
+                        // 2. Timestamps a menos de 5 minutos
+                        if (itemTimeMs && sTimeMs && Math.abs(itemTimeMs - sTimeMs) < 300000) return true;
+                        // 3. Texto de hora coincidente sin espacios
+                        if (item.time && s.time && item.time.replace(/\s+/g, '').toLowerCase() === s.time.replace(/\s+/g, '').toLowerCase()) return true;
+
+                        return false;
+                    });
+
+                    if (duplicateMatch) {
+                        // Es un duplicado: registrar su ID para eliminar de Firestore
+                        if (item.id && !item.id.startsWith('fichaje-')) {
+                            toDeleteIds.push(item.id);
+                        }
+                    } else {
+                        cleanList.push(item);
+                    }
+                }
+
+                if (toDeleteIds.length === 0) {
+                    fichajes = deduplicateFichajesList(fichajes);
+                    localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+                    renderAll();
+                    updateCollabFichajeUI();
+                    alert("¡No se encontraron fichajes duplicados! Todos los registros son únicos.");
+                    showToast("No se encontraron fichajes duplicados.", "success");
+                    return;
+                }
+
+                const confirmDelete = confirm(`Se encontraron ${toDeleteIds.length} fichajes duplicados por rebote.\n¿Deseas eliminarlos de Firebase para que quede un solo registro por fichaje?`);
+                if (!confirmDelete) {
+                    showToast("Operación cancelada por el usuario.", "info");
+                    return;
+                }
+
+                showToast(`Eliminando ${toDeleteIds.length} fichajes duplicados...`, "info");
+                if (typeof db !== 'undefined' && db) {
+                    const deletePromises = toDeleteIds.map(id => db.collection('fichajes').doc(id).delete().catch(err => {
+                        console.warn(`Error borrando doc ${id}:`, err);
+                    }));
+                    await Promise.all(deletePromises);
+                }
+
+                const deletedSet = new Set(toDeleteIds);
+                fichajes = deduplicateFichajesList(fichajes.filter(f => !deletedSet.has(f.id)));
+                localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+
+                renderAll();
+                updateCollabFichajeUI();
+
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'FICHAJE_UPDATED' }, '*');
+                }
+
+                alert(`¡Limpieza exitosa! Se eliminaron ${toDeleteIds.length} fichajes duplicados. Ahora cada fichaje tiene un único registro.`);
+                showToast(`Se eliminaron ${toDeleteIds.length} duplicados.`, "success");
+
+            } catch (err) {
+                console.error("Error al limpiar duplicados:", err);
+                showToast("Error en la limpieza: " + err.message, "error");
+                alert("Error al limpiar duplicados: " + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🧹 Limpiar Duplicados';
+                }
+            }
+        };
 
         document.addEventListener('DOMContentLoaded', () => {
             initModule();
