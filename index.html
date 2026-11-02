@@ -475,7 +475,7 @@
 
                 <!-- 5. FICHAJES (MÓDULO INDEPENDIENTE) -->
                 <div id="mod-fichajes" class="page-content hidden">
-                    <iframe data-src="modulos/fichajes.html?v=1" style="width: 100%; height: calc(100vh - 72px); border: none;"></iframe>
+                    <iframe data-src="modulos/fichajes.html?v=3" style="width: 100%; height: calc(100vh - 72px); border: none;"></iframe>
                 </div>
 
                 <!-- 6. JORNALES (MÓDULO INDEPENDIENTE) -->
@@ -1093,6 +1093,15 @@
             document.body.style.alignItems = 'stretch';
             document.body.style.justifyContent = 'flex-start';
             configureRoleUI();
+
+            // Precargar el módulo de Fichajes en segundo plano para apertura en 0ms al tocar la pestaña
+            setTimeout(() => {
+                const fichajesIframe = document.querySelector('#mod-fichajes iframe');
+                if (fichajesIframe && !fichajesIframe.getAttribute('src')) {
+                    const dataSrc = fichajesIframe.getAttribute('data-src');
+                    if (dataSrc) fichajesIframe.src = dataSrc;
+                }
+            }, 300);
         }
 
         function hideApp() {
@@ -1140,7 +1149,7 @@
                     mensaje.style.color = '#4cd964';
                     mensaje.textContent = '¡Ingreso exitoso! Redirigiendo...';
 
-                    const defMod1 = (newUserData.role === 'Colaborador') ? 'fichajes' : 'dashboard';
+                    const defMod1 = (userData.role === 'Colaborador') ? 'fichajes' : 'dashboard';
                     const targetMod1 = localStorage.getItem('electrofrio_active_module') || defMod1;
                     setTimeout(() => {
                         showApp();

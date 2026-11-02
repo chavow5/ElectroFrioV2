@@ -15,12 +15,6 @@
     <!-- Estilos compartidos del sistema -->
     <link rel="stylesheet" href="../css/style.css">
 
-    <!-- Firebase SDK (Compat v9) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="../js/modo-seguro.js"></script>
-
     <style>
         * {
             box-sizing: border-box;
@@ -712,6 +706,10 @@
             color: #f87171;
             border: 1px solid rgba(239, 68, 68, 0.4);
         }
+
+        body:not(.is-admin-role) .role-admin-only {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -761,7 +759,7 @@
             </p>
 
             <!-- Reloj Digital en Vivo -->
-            <div class="clock-display" id="fichajeClock">00:00:00</div>
+            <div class="clock-display" id="fichajeClock">--:--:--</div>
             <div class="fichaje-date-label" id="fichajeDate">Cargando fecha...</div>
 
             <!-- Estado de Turno Actual -->
@@ -777,12 +775,34 @@
             <!-- Botón de Fichaje Único -->
             <div style="display: flex; justify-content: center;">
                 <button id="btnFicharUnico" type="button" class="fichaje-btn-main in">
-                    Cargando estado...
+                    Marcar Entrada
                 </button>
             </div>
             <div id="gpsStatusNotice" style="font-size: 11px; color: var(--text-muted); margin-top: 14px;">
                 📍 Geolocalización activa: radio satelital de 30 metros autorizado
             </div>
+            <script>
+                (function () {
+                    var now = new Date();
+                    var elClock = document.getElementById('fichajeClock');
+                    var elDate = document.getElementById('fichajeDate');
+                    var elRole = document.getElementById('lblCurrentRole');
+                    if (elClock) elClock.textContent = now.toLocaleTimeString('es-AR');
+                    if (elDate) {
+                        var txt = now.toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                        elDate.textContent = txt.charAt(0).toUpperCase() + txt.slice(1);
+                    }
+                    var role = localStorage.getItem('electrofrio_role') || 'Colaborador';
+                    if (elRole) {
+                        elRole.textContent = role;
+                    }
+                    if (String(role).trim().toLowerCase() === 'administrador') {
+                        document.body.classList.add('is-admin-role');
+                    } else {
+                        document.body.classList.remove('is-admin-role');
+                    }
+                })();
+            </script>
         </div>
     </div>
 
@@ -938,8 +958,8 @@
             </div>
         </div>
 
-        <!-- Banner Modo Ahorro Firebase (Últimos 5 días) -->
-        <div id="bannerAhorroFirebase" style="background: rgba(0, 180, 216, 0.1); border: 1px dashed rgba(0, 180, 216, 0.4); border-radius: 10px; padding: 10px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <!-- Banner Modo Ahorro Firebase (Últimos 5 días) - Solo visible para Administrador -->
+        <div id="bannerAhorroFirebase" class="role-admin-only" style="background: rgba(0, 180, 216, 0.1); border: 1px dashed rgba(0, 180, 216, 0.4); border-radius: 10px; padding: 10px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 16px;">⚡</span>
                 <span style="font-size: 13px; color: #38bdf8;">
@@ -1097,6 +1117,12 @@
     <!-- Contenedor de Notificaciones Toast -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Firebase SDK (Compat v9) - Al final del body para no bloquear el pintado instantáneo del reloj -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="../js/modo-seguro.js"></script>
+
     <!-- ==============================================================
          LÓGICA JAVASCRIPT DEL MÓDULO FICHAJES
          ============================================================== -->
@@ -1121,9 +1147,53 @@
         // ESTADO GLOBAL
         let fichajes = [];
         let colaboradores = [];
-        let currentRole = localStorage.getItem('electrofrio_role') || 'Administrador';
+        let currentRole = localStorage.getItem('electrofrio_role') || 'Colaborador';
         let currentName = localStorage.getItem('electrofrio_name') || '';
         let currentUser = localStorage.getItem('electrofrio_user') || '';
+
+        function isAdminRole() {
+            return String(currentRole || '').trim().toLowerCase() === 'administrador';
+        }
+
+        function isOwnFichajeRecord(f) {
+            if (!f) return false;
+            const myName = (currentName || '').trim().toLowerCase();
+            const myUser = (currentUser || '').trim().toLowerCase();
+            const fName = (f.name || '').trim().toLowerCase();
+            const fUser = (f.username || '').trim().toLowerCase();
+            if (myName && fName && fName === myName) return true;
+            if (myUser && fUser && fUser === myUser) return true;
+            return false;
+        }
+
+        function applyRolePermissionsUI() {
+            currentRole = localStorage.getItem('electrofrio_role') || currentRole || 'Colaborador';
+            currentName = localStorage.getItem('electrofrio_name') || currentName || '';
+            currentUser = localStorage.getItem('electrofrio_user') || currentUser || '';
+
+            const isAdmin = isAdminRole();
+            document.body.classList.toggle('is-admin-role', isAdmin);
+
+            const lblRole = document.getElementById('lblCurrentRole');
+            if (lblRole) lblRole.textContent = currentRole;
+
+            const adminSec = document.getElementById('sectionAdminControl');
+            const adminActions = document.getElementById('adminHeaderActions');
+            const collabSec = document.getElementById('sectionCollabFichaje');
+
+            if (isAdmin) {
+                if (adminSec) adminSec.style.display = 'block';
+                if (adminActions) adminActions.style.display = 'flex';
+                if (collabSec) collabSec.style.display = 'block';
+                document.querySelectorAll('.role-admin-only').forEach(el => el.style.display = '');
+            } else {
+                if (adminSec) adminSec.style.display = 'none';
+                if (adminActions) adminActions.style.display = 'none';
+                if (collabSec) collabSec.style.display = 'block';
+                document.querySelectorAll('.role-admin-only').forEach(el => el.style.display = 'none');
+                closeModalFichaje();
+            }
+        }
 
         let editFichajeId = null;
         let filterFichajesCollabVal = "";
@@ -1215,66 +1285,79 @@
             return hours * 60 + minutes;
         }
 
-        function getFichajeStandardDate(f) {
-            const now = getSyncedDate();
-            const todayISO = getLocalISODate(now);
-            let d = null;
-            let iso = '';
-            let ar = '';
+        // FORMATEADORES INTERNACIONALES Y CACHÉ DE FECHAS EN MEMORIA (Evita recalcular miles de veces)
+        const _intlWeekdayFormatter = new Intl.DateTimeFormat('es-AR', { weekday: 'long' });
+        const _intlFullDateFormatter = new Intl.DateTimeFormat('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const _standardDateCache = new Map();
 
+        function getFichajeFastISO(f, todayISO) {
             const dateStr = (f && typeof f === 'object') ? f.date : f;
             const timestamp = (f && typeof f === 'object') ? f.timestamp : null;
 
-            if (dateStr === 'Hoy') {
-                d = now;
-                iso = todayISO;
-            } else if (dateStr && typeof dateStr === 'string' && dateStr.includes('-')) {
-                const parts = dateStr.split('-');
-                if (parts.length === 3) {
-                    d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0);
-                    iso = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-                }
-            } else if (dateStr && typeof dateStr === 'string' && dateStr.includes('/')) {
-                const parts = dateStr.split('/');
-                if (parts.length === 3) {
-                    d = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10), 12, 0, 0);
-                    iso = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            if (dateStr === 'Hoy') return todayISO;
+            if (dateStr && typeof dateStr === 'string') {
+                if (dateStr.includes('-')) {
+                    const parts = dateStr.split('-');
+                    if (parts.length === 3) {
+                        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                    }
+                } else if (dateStr.includes('/')) {
+                    const parts = dateStr.split('/');
+                    if (parts.length === 3) {
+                        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    }
                 }
             }
-
-            if ((!d || isNaN(d.getTime())) && timestamp) {
+            if (timestamp) {
+                if (typeof timestamp === 'string' && /^\d{4}-\d{2}-\d{2}/.test(timestamp)) {
+                    const dt = new Date(timestamp);
+                    if (!isNaN(dt.getTime())) return getLocalISODate(dt);
+                }
                 try {
                     const dt = new Date(timestamp);
-                    if (!isNaN(dt.getTime())) {
-                        d = dt;
-                        iso = getLocalISODate(dt);
-                    }
+                    if (!isNaN(dt.getTime())) return getLocalISODate(dt);
                 } catch(e) {}
             }
+            return todayISO;
+        }
 
-            if (!d || isNaN(d.getTime())) {
-                d = now;
-                iso = todayISO;
+        function getFichajeStandardDate(f) {
+            const now = getSyncedDate();
+            const todayISO = getLocalISODate(now);
+            const iso = getFichajeFastISO(f, todayISO);
+            const cacheKey = `${iso}|${todayISO}`;
+
+            if (_standardDateCache.has(cacheKey)) {
+                return _standardDateCache.get(cacheKey);
             }
+
+            const parts = iso.split('-');
+            let d = (parts.length === 3)
+                ? new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 12, 0, 0)
+                : now;
+            if (isNaN(d.getTime())) d = now;
 
             const day = String(d.getDate()).padStart(2, '0');
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const year = d.getFullYear();
-            ar = `${day}/${month}/${year}`;
+            const ar = `${day}/${month}/${year}`;
 
-            const rawDayName = d.toLocaleDateString('es-AR', { weekday: 'long' });
+            const rawDayName = _intlWeekdayFormatter.format(d);
             const dayName = rawDayName.charAt(0).toUpperCase() + rawDayName.slice(1);
             const isToday = (iso === todayISO);
 
             let fullTitle = '';
             try {
-                const formatted = d.toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const formatted = _intlFullDateFormatter.format(d);
                 fullTitle = formatted.charAt(0).toUpperCase() + formatted.slice(1);
             } catch(e) {
                 fullTitle = `${dayName}, ${ar}`;
             }
 
-            return { d, iso, ar, dayName, isToday, fullTitle };
+            const result = { d, iso, ar, dayName, isToday, fullTitle };
+            if (_standardDateCache.size > 400) _standardDateCache.clear();
+            _standardDateCache.set(cacheKey, result);
+            return result;
         }
 
         function formatDateToAR(dateStr) {
@@ -1344,61 +1427,95 @@
             return false;
         }
 
-        // DEDUPLICACIÓN INTELIGENTE DE FICHAJES (Conserva un solo registro por fichaje)
+        // DEDUPLICACIÓN ULTRARRÁPIDA O(N) DE FICHAJES (Conserva un solo registro por fichaje en < 1ms)
         function deduplicateFichajesList(list) {
-            if (!Array.isArray(list)) return [];
-            const cleanList = [];
-            // Ordenar de más antiguo a más nuevo para conservar el primer fichaje original
-            const sorted = [...list].sort((a, b) => {
-                const tA = a.timestamp ? new Date(a.timestamp).getTime() : ((parseTimeToMinutes(a.time) || 0) * 60000);
-                const tB = b.timestamp ? new Date(b.timestamp).getTime() : ((parseTimeToMinutes(b.time) || 0) * 60000);
-                return tA - tB;
-            });
+            if (!Array.isArray(list) || list.length === 0) return [];
+            const todayISO = getLocalISODate(getSyncedDate());
 
-            for (const item of sorted) {
+            // Pre-calcular claves una sola vez por elemento
+            const prepared = [];
+            for (let i = 0; i < list.length; i++) {
+                const item = list[i];
                 if (!item) continue;
-                const itemName = (item.name || item.username || '').trim().toLowerCase();
-                const itemType = (item.type || '').trim().toLowerCase();
-                const itemDateIso = getFichajeStandardDate(item).iso;
-                const itemMinutes = parseTimeToMinutes(item.time);
-                const itemTimeMs = item.timestamp ? new Date(item.timestamp).getTime() : 0;
-
-                const isDup = cleanList.some(s => {
-                    const sName = (s.name || s.username || '').trim().toLowerCase();
-                    const sType = (s.type || '').trim().toLowerCase();
-                    const sDateIso = getFichajeStandardDate(s).iso;
-                    const sMinutes = parseTimeToMinutes(s.time);
-                    const sTimeMs = s.timestamp ? new Date(s.timestamp).getTime() : 0;
-
-                    if (itemName !== sName || itemType !== sType) return false;
-                    if (itemDateIso !== sDateIso) return false;
-
-                    // Mismo técnico, mismo día, mismo tipo (Entrada o Salida):
-                    // 1. Si los minutos de hora difieren en 5 minutos o menos (ej: 8:00 vs 8:00 ó 8:02)
-                    if (itemMinutes !== null && sMinutes !== null && Math.abs(itemMinutes - sMinutes) <= 5) {
-                        return true;
-                    }
-                    // 2. Si los timestamps difieren en menos de 5 minutos (300.000 ms)
-                    if (itemTimeMs && sTimeMs && Math.abs(itemTimeMs - sTimeMs) < 300000) {
-                        return true;
-                    }
-                    // 3. Si el texto de hora coincide tras normalización básica
-                    if (item.time && s.time && item.time.replace(/\s+/g, '').toLowerCase() === s.time.replace(/\s+/g, '').toLowerCase()) {
-                        return true;
-                    }
-                    return false;
+                const timeMs = item.timestamp ? new Date(item.timestamp).getTime() : 0;
+                const minutes = parseTimeToMinutes(item.time);
+                const sortKey = timeMs || ((minutes || 0) * 60000);
+                prepared.push({
+                    item,
+                    name: (item.name || item.username || '').trim().toLowerCase(),
+                    type: (item.type || '').trim().toLowerCase(),
+                    dateIso: getFichajeFastISO(item, todayISO),
+                    minutes,
+                    timeMs,
+                    cleanTime: item.time ? item.time.replace(/\s+/g, '').toLowerCase() : '',
+                    sortKey
                 });
+            }
+
+            // Ordenar de más antiguo a más nuevo para conservar el primer fichaje original
+            prepared.sort((a, b) => a.sortKey - b.sortKey);
+
+            const buckets = new Map();
+            const cleanPrepared = [];
+
+            for (let i = 0; i < prepared.length; i++) {
+                const cur = prepared[i];
+                const key = `${cur.name}|${cur.type}|${cur.dateIso}`;
+                let bucket = buckets.get(key);
+
+                if (!bucket) {
+                    bucket = [cur];
+                    buckets.set(key, bucket);
+                    cleanPrepared.push(cur);
+                    continue;
+                }
+
+                let isDup = false;
+                for (let j = 0; j < bucket.length; j++) {
+                    const s = bucket[j];
+                    if (cur.minutes !== null && s.minutes !== null && Math.abs(cur.minutes - s.minutes) <= 5) {
+                        isDup = true;
+                        break;
+                    }
+                    if (cur.timeMs && s.timeMs && Math.abs(cur.timeMs - s.timeMs) < 300000) {
+                        isDup = true;
+                        break;
+                    }
+                    if (cur.cleanTime && s.cleanTime && cur.cleanTime === s.cleanTime) {
+                        isDup = true;
+                        break;
+                    }
+                }
 
                 if (!isDup) {
-                    cleanList.push(item);
+                    bucket.push(cur);
+                    cleanPrepared.push(cur);
                 }
             }
 
             // Retornar en orden cronológico descendente (más recientes primero)
-            return cleanList.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+            cleanPrepared.sort((a, b) => b.sortKey - a.sortKey);
+            return cleanPrepared.map(p => p.item);
         }
 
-        // GEOLOCALIZACIÓN (FÓRMULA DE HAVERSINE)
+        // GEOLOCALIZACIÓN (FÓRMULA DE HAVERSINE + PRECALENTAMIENTO DE GPS)
+        let _warmGpsPosition = null;
+        let _warmGpsTimestamp = 0;
+
+        function prewarmGeolocation() {
+            if (!navigator.geolocation || !navigator.onLine) return;
+            try {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        _warmGpsPosition = pos.coords;
+                        _warmGpsTimestamp = Date.now();
+                    },
+                    () => {},
+                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
+                );
+            } catch(e) {}
+        }
+
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; // Radio de la Tierra en metros
             const φ1 = lat1 * Math.PI / 180;
@@ -1457,10 +1574,21 @@
                 return;
             }
 
+            // Si ya tenemos una lectura GPS precalentada reciente (< 45s) y dentro del radio, responder en 0ms
+            if (_warmGpsPosition && (Date.now() - _warmGpsTimestamp < 45000)) {
+                const warmDist = calculateDistance(_warmGpsPosition.latitude, _warmGpsPosition.longitude, allowedLat, allowedLng);
+                if (warmDist <= allowedRadius) {
+                    safeCallback(collab, _warmGpsPosition.latitude, _warmGpsPosition.longitude);
+                    return;
+                }
+            }
+
             function requestLocation(options, isRetry = false) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         if (executed) return;
+                        _warmGpsPosition = position.coords;
+                        _warmGpsTimestamp = Date.now();
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
                         const distance = calculateDistance(userLat, userLng, allowedLat, allowedLng);
@@ -1469,7 +1597,7 @@
                             safeCallback(collab, userLat, userLng);
                         } else if (!isRetry) {
                             console.warn(`Distancia inicial (${Math.round(distance)}m) > ${allowedRadius}m. Reintentando con GPS de alta precisión...`);
-                            requestLocation({ enableHighAccuracy: true, timeout: 5000, maximumAge: 15000 }, true);
+                            requestLocation({ enableHighAccuracy: true, timeout: 3500, maximumAge: 0 }, true);
                         } else {
                             safeRejected();
                             const msg = `No estás en el lugar autorizado para tomar el fichaje (distancia: ${Math.round(distance)}m). El rango permitido es de ${allowedRadius} metros a la redonda.`;
@@ -1480,7 +1608,7 @@
                     (error) => {
                         if (executed) return;
                         if (!isRetry && (error.code === 2 || error.code === 3)) {
-                            requestLocation({ enableHighAccuracy: true, timeout: 5000, maximumAge: 15000 }, true);
+                            requestLocation({ enableHighAccuracy: false, timeout: 3000, maximumAge: 30000 }, true);
                             return;
                         }
                         safeRejected();
@@ -1495,10 +1623,11 @@
             }
 
             // Uso de caché reciente de hasta 60s para respuesta instantánea (< 100ms)
-            requestLocation({ enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 });
+            requestLocation({ enableHighAccuracy: true, timeout: 3500, maximumAge: 60000 });
         }
 
-        // RELOJ DIGITAL EN VIVO
+        // RELOJ DIGITAL EN VIVO (Ejecución inmediata para evitar mostrar 00:00:00)
+        let _lastRenderedDateDay = -1;
         function updateFichajeClock() {
             const clockEl = document.getElementById('fichajeClock');
             const dateEl = document.getElementById('fichajeDate');
@@ -1507,9 +1636,10 @@
             const now = getSyncedDate();
             clockEl.textContent = now.toLocaleTimeString('es-AR');
 
-            if (dateEl) {
-                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                dateEl.textContent = now.toLocaleDateString('es-AR', options);
+            if (dateEl && now.getDate() !== _lastRenderedDateDay) {
+                _lastRenderedDateDay = now.getDate();
+                const formatted = _intlFullDateFormatter.format(now);
+                dateEl.textContent = formatted.charAt(0).toUpperCase() + formatted.slice(1);
             }
 
             // Actualizar cuenta regresiva de cooldown si está activa
@@ -1530,6 +1660,7 @@
                 }
             }
         }
+        updateFichajeClock();
         setInterval(updateFichajeClock, 1000);
 
         // ACTUALIZAR ESTADO DEL BOTÓN Y TURNO DEL COLABORADOR
@@ -1969,6 +2100,7 @@
                 return;
             }
 
+            const fragment = document.createDocumentFragment();
             filtered.forEach(item => {
                 const tr = document.createElement('tr');
                 const initials = (item.collab.name || '??').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
@@ -2025,8 +2157,9 @@
                     <td data-label="Estado del Día">${item.statusBadge}</td>
                     <td data-label="Acción Rápida" style="text-align: right;">${item.quickActionHtml}</td>
                 `;
-                tableBody.appendChild(tr);
+                fragment.appendChild(tr);
             });
+            tableBody.appendChild(fragment);
         }
 
         // ==============================================================
@@ -2040,16 +2173,13 @@
 
             // Asegurar deduplicación inmediata en memoria para evitar registros duplicados en pantalla
             fichajes = deduplicateFichajesList(fichajes);
+            const isAdmin = isAdminRole();
 
             let list = [];
-            if (currentRole === 'Colaborador') {
-                const name = currentName || "";
-                list = fichajes.filter(f => {
-                    const matchName = f.name && name && f.name.trim().toLowerCase() === name.trim().toLowerCase();
-                    const matchUser = f.username && currentUser && f.username.trim().toLowerCase() === currentUser.trim().toLowerCase();
-                    return (matchName || matchUser) && isFichajeToday(f.date, f.timestamp);
-                });
-                if (titleEl) titleEl.textContent = "Mis Fichajes del Día";
+            if (!isAdmin) {
+                // Los colaboradores (y cualquier rol NO Administrador) SOLO ven sus propios registros
+                list = fichajes.filter(f => isOwnFichajeRecord(f));
+                if (titleEl) titleEl.textContent = "Mis Registros de Fichaje";
             } else {
                 if (titleEl) titleEl.textContent = "Historial General de Fichajes";
                 list = fichajes.filter(f => {
@@ -2078,12 +2208,12 @@
                 });
             }
 
-            if (countBadge) countBadge.textContent = `${list.length} registros`;
+            if (countBadge) countBadge.textContent = `${list.length} registro${list.length === 1 ? '' : 's'}`;
             tableBody.innerHTML = '';
 
             if (list.length === 0) {
-                const msg = currentRole === 'Colaborador'
-                    ? "No has registrado fichajes el día de hoy."
+                const msg = !isAdmin
+                    ? "No tienes registros de fichajes cargados."
                     : "No se encontraron fichajes con los filtros seleccionados.";
                 tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">${msg}</td></tr>`;
                 return;
@@ -2105,6 +2235,7 @@
 
             // Ordenar los días cronológicamente descendente (el día más reciente primero)
             const sortedDays = Array.from(dayGroupsMap.values()).sort((a, b) => b.iso.localeCompare(a.iso));
+            const tableFragment = document.createDocumentFragment();
 
             sortedDays.forEach((dayGroup, dayIndex) => {
                 // Analizar colaboradores del día para calcular turnos múltiples y detectar faltantes
@@ -2145,7 +2276,7 @@
                 const uniqueCollabsCount = collabMap.size;
                 let dayStatusBadge = '';
                 if (dayIncompleteCount > 0) {
-                    dayStatusBadge = `<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">⚠️ ${dayIncompleteCount} con fichaje incompleto</span>`;
+                    dayStatusBadge = `<span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">⚠️ ${isAdmin ? `${dayIncompleteCount} con fichaje incompleto` : 'Turno en curso / incompleto'}</span>`;
                 } else {
                     dayStatusBadge = `<span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">✅ Entradas y Salidas Completas</span>`;
                 }
@@ -2162,18 +2293,15 @@
                                 ${dayGroup.dateInfo.isToday ? '<span style="background: #0284c7; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Hoy</span>' : ''}
                             </div>
                             <div style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                <span>👥 <strong>${uniqueCollabsCount}</strong> técnico${uniqueCollabsCount === 1 ? '' : 's'}</span>
-                                <span>•</span>
+                                ${isAdmin ? `<span>👥 <strong>${uniqueCollabsCount}</strong> técnico${uniqueCollabsCount === 1 ? '' : 's'}</span><span>•</span>` : ''}
                                 <span>📋 <strong>${dayGroup.records.length}</strong> fichaje${dayGroup.records.length === 1 ? '' : 's'}</span>
                                 ${dayStatusBadge}
-                                <button type="button" class="role-admin-only" onclick="openModalNuevoFichajeParaDia('${dayGroup.iso}')" style="background: rgba(2, 132, 199, 0.15); border: 1px solid var(--color-blue); color: var(--color-blue); font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-weight: 700;" title="Cargar un fichaje olvidado en este día">
-                                    + Cargar en este Día
-                                </button>
+                                ${isAdmin ? `<button type="button" class="role-admin-only" onclick="openModalNuevoFichajeParaDia('${dayGroup.iso}')" style="background: rgba(2, 132, 199, 0.15); border: 1px solid var(--color-blue); color: var(--color-blue); font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-weight: 700;" title="Cargar un fichaje olvidado en este día">+ Cargar en este Día</button>` : ''}
                             </div>
                         </div>
                     </td>
                 `;
-                tableBody.appendChild(trDay);
+                tableFragment.appendChild(trDay);
 
                 // Ordenar los registros del día agrupando por técnico y luego cronológicamente por hora
                 dayGroup.records.sort((a, b) => {
@@ -2194,27 +2322,33 @@
                         tr.style.borderTop = '1px dashed rgba(255, 255, 255, 0.12)';
                     }
 
-                    // Badge de Tipo con turno (si hay más de 1 turno en el día) y acción rápida para cargar el fichaje omitido
+                    // Badge de Tipo con turno (si hay más de 1 turno en el día) y acción rápida solo para Administrador
                     let typeBadge = '';
                     const turnSuffix = (f._totalInDay > 1 || f._turnNumber > 1) ? ` (${f._turnNumber}º Turno)` : '';
                     const safeName = (f.name || '').replace(/'/g, "\\'");
 
                     if (f.type === 'Entrada') {
-                        let missingBadge = f._isMissingExit ? `
-                            <button type="button" class="fichaje-subturn-badge subturn-missing-out" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${dayGroup.iso}')" title="Clic para cargar la salida olvidada de ${safeName}" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(245, 158, 11, 0.5);">
-                                ⏳ Falta Salida <strong style="text-decoration: underline;">+ Cargar</strong>
-                            </button>
-                        ` : '';
+                        let missingBadge = '';
+                        if (f._isMissingExit) {
+                            missingBadge = isAdmin ? `
+                                <button type="button" class="fichaje-subturn-badge subturn-missing-out" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${dayGroup.iso}')" title="Clic para cargar la salida olvidada de ${safeName}" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(245, 158, 11, 0.5);">
+                                    ⏳ Falta Salida <strong style="text-decoration: underline;">+ Cargar</strong>
+                                </button>
+                            ` : `<span class="fichaje-subturn-badge subturn-missing-out">⏳ Falta Salida</span>`;
+                        }
                         typeBadge = `
                             <span class="badge-entrada"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg> Entrada${turnSuffix}</span>
                             ${missingBadge}
                         `;
                     } else {
-                        let missingBadge = f._isMissingEntry ? `
-                            <button type="button" class="fichaje-subturn-badge subturn-missing-in" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${dayGroup.iso}')" title="Clic para cargar la entrada olvidada de ${safeName}" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(239, 68, 68, 0.5);">
-                                ⚠️ Falta Entrada <strong style="text-decoration: underline;">+ Cargar</strong>
-                            </button>
-                        ` : '';
+                        let missingBadge = '';
+                        if (f._isMissingEntry) {
+                            missingBadge = isAdmin ? `
+                                <button type="button" class="fichaje-subturn-badge subturn-missing-in" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${dayGroup.iso}')" title="Clic para cargar la entrada olvidada de ${safeName}" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(239, 68, 68, 0.5);">
+                                    ⚠️ Falta Entrada <strong style="text-decoration: underline;">+ Cargar</strong>
+                                </button>
+                            ` : `<span class="fichaje-subturn-badge subturn-missing-in">⚠️ Falta Entrada</span>`;
+                        }
                         typeBadge = `
                             <span class="badge-salida"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="14 17 9 12 14 7"></polyline><line x1="9" y1="12" x2="21" y2="12"></line></svg> Salida${turnSuffix}</span>
                             ${missingBadge}
@@ -2227,18 +2361,14 @@
                         gpsBadge = `<a href="${mapsUrl}" target="_blank" class="badge-gps-verified" title="Ver en Google Maps (${f.gps.lat.toFixed(5)}, ${f.gps.lng.toFixed(5)})">📍 GPS Verificado ↗</a>`;
                     }
 
-                    const actionsHtml = currentRole === 'Administrador' ? `
+                    const actionsHtml = isAdmin ? `
                         <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
                             <button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${f.id}')" title="Ver Detalle del Fichaje">👁️</button>
                             <button type="button" class="btn-table-action" onclick="openModalEditarFichaje('${f.id}')" title="Editar Fichaje">✏️</button>
                             <button type="button" class="btn-table-action" onclick="openModalFichajeForCollab('${safeName}', '${f.type === 'Entrada' ? 'Salida' : 'Entrada'}', '${dayGroup.iso}')" title="Cargar fichaje complementario para ${safeName}">+➕</button>
                             <button type="button" class="btn-table-action delete" onclick="eliminarFichaje('${f.id}')" title="Eliminar Fichaje">🗑️</button>
                         </div>
-                    ` : `
-                        <div style="display: flex; gap: 6px; justify-content: center;">
-                            <button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${f.id}')" title="Ver Detalle del Fichaje">👁️</button>
-                        </div>
-                    `;
+                    ` : '';
 
                     tr.innerHTML = `
                         <td data-label="Colaborador">
@@ -2257,9 +2387,10 @@
                         <td data-label="GPS / Ubicación">${gpsBadge}</td>
                         <td data-label="Acciones" class="role-admin-only" style="text-align: center;">${actionsHtml}</td>
                     `;
-                    tableBody.appendChild(tr);
+                    tableFragment.appendChild(tr);
                 });
             });
+            tableBody.appendChild(tableFragment);
         }
 
         // ==============================================================
@@ -2350,6 +2481,10 @@
         window.openModalVerDetalleFichaje = function(id) {
             const f = fichajes.find(item => item.id === id);
             if (!f) return;
+            if (!isAdminRole() && !isOwnFichajeRecord(f)) {
+                showToast("Solo puedes consultar tus propios registros de fichaje.", "warning");
+                return;
+            }
 
             const modal = document.getElementById('modalDetalleFichajeIndividual');
             const body = document.getElementById('modalDetalleFichajeBody');
@@ -2409,6 +2544,10 @@
         };
 
         window.openModalNuevoFichajeManual = function() {
+            if (!isAdminRole()) {
+                showToast("Acceso restringido: solo Administradores pueden agregar o editar fichajes.", "warning");
+                return;
+            }
             editFichajeId = null;
             document.getElementById('modalFichajeHeaderText').textContent = "Registrar Fichaje Manual / Olvidado";
             document.getElementById('btnSubmitFichajeModal').textContent = "Guardar Fichaje";
@@ -2433,6 +2572,7 @@
         };
 
         window.openModalNuevoFichajeParaDia = function(targetDate) {
+            if (!isAdminRole()) return;
             openModalNuevoFichajeManual();
             if (targetDate) {
                 document.getElementById('fichaje-date').value = targetDate;
@@ -2440,6 +2580,7 @@
         };
 
         window.openModalFichajeForCollab = function(collabName, defaultType = 'Entrada', targetDate = null) {
+            if (!isAdminRole()) return;
             openModalNuevoFichajeManual();
             const select = document.getElementById('fichaje-collab');
             if (select && collabName) {
@@ -2459,6 +2600,10 @@
         };
 
         window.openModalEditarFichaje = function(id) {
+            if (!isAdminRole()) {
+                showToast("Acceso restringido: solo Administradores pueden editar fichajes.", "warning");
+                return;
+            }
             const f = fichajes.find(item => item.id === id);
             if (!f) return;
 
@@ -2482,8 +2627,10 @@
         };
 
         window.closeModalFichaje = function() {
-            document.getElementById('modalFichaje').classList.remove('show');
-            document.getElementById('formFichaje').reset();
+            const modalEl = document.getElementById('modalFichaje');
+            if (modalEl) modalEl.classList.remove('show');
+            const formEl = document.getElementById('formFichaje');
+            if (formEl) formEl.reset();
             const obsInput = document.getElementById('fichaje-observacion');
             if (obsInput) obsInput.value = '';
             setFichajeType('');
@@ -2492,6 +2639,11 @@
 
         window.handleFormFichajeSubmit = async function(e) {
             e.preventDefault();
+            if (!isAdminRole()) {
+                showToast("No tienes permisos para guardar o editar fichajes.", "error");
+                closeModalFichaje();
+                return;
+            }
             const dateVal = document.getElementById('fichaje-date').value;
             const timeVal = document.getElementById('fichaje-time').value;
             const typeVal = document.getElementById('fichaje-type').value;
@@ -2596,6 +2748,10 @@
         };
 
         window.eliminarFichaje = async function(id) {
+            if (!isAdminRole()) {
+                showToast("Acceso restringido: solo Administradores pueden eliminar fichajes.", "warning");
+                return;
+            }
             if (!confirm("¿Estás seguro de que deseas eliminar este registro de fichaje?")) return;
             try {
                 await db.collection('fichajes').doc(id).delete();
@@ -2614,8 +2770,9 @@
             }
         };
 
-        // HISTORIAL HISTÓRICO BAJO DEMANDA (Carga remota optimizada)
+        // HISTORIAL HISTÓRICO BAJO DEMANDA (Carga remota optimizada - Solo Admin)
         window.loadFichajesHistorial = async function() {
+            if (!isAdminRole()) return;
             const btn = document.getElementById('btnVerHistorialFichajes');
             const btnBanner = document.getElementById('btnBannerHistorial');
             if (btn) { btn.disabled = true; btn.textContent = 'Cargando...'; }
@@ -2655,61 +2812,34 @@
 
         // RENDER GENERAL
         function renderAll() {
-            renderTodayAttendanceControl();
+            applyRolePermissionsUI();
+            if (isAdminRole()) {
+                renderTodayAttendanceControl();
+            }
             renderFichajesTable();
         }
 
-        // CARGA INICIAL DE DATOS
-        async function initModule() {
-            // 1. Obtener rol y usuario
-            currentRole = localStorage.getItem('electrofrio_role') || 'Administrador';
-            currentName = localStorage.getItem('electrofrio_name') || '';
-            currentUser = localStorage.getItem('electrofrio_user') || '';
+        // CARGA INICIAL DE DATOS (Instantánea sin bloqueo de red)
+        function initModule() {
+            // 0. Actualizar reloj de inmediato
+            updateFichajeClock();
 
-            const lblRole = document.getElementById('lblCurrentRole');
-            if (lblRole) lblRole.textContent = currentRole;
+            // 1. Obtener rol, usuario y permisos de interfaz
+            applyRolePermissionsUI();
 
-            const adminSec = document.getElementById('sectionAdminControl');
-            const adminActions = document.getElementById('adminHeaderActions');
-            const collabSec = document.getElementById('sectionCollabFichaje');
-
-            if (currentRole === 'Colaborador') {
-                if (adminSec) adminSec.style.display = 'none';
-                if (adminActions) adminActions.style.display = 'none';
-                if (collabSec) collabSec.style.display = 'block';
-                document.querySelectorAll('.role-admin-only').forEach(el => el.style.display = 'none');
-            } else {
-                if (adminSec) adminSec.style.display = 'block';
-                if (adminActions) adminActions.style.display = 'flex';
-                if (collabSec) collabSec.style.display = 'block';
-                document.querySelectorAll('.role-admin-only').forEach(el => el.style.display = '');
-            }
-
-            // 2. Colaboradores desde caché o Firestore
+            // 2. Colaboradores desde caché (sin bloquear renderizado)
             const cachedCollabs = localStorage.getItem('electrofrio_collaborators') || localStorage.getItem('electrofrio_colaboradores');
             if (cachedCollabs) {
                 try { colaboradores = JSON.parse(cachedCollabs); } catch(e) {}
             }
-            if (colaboradores.length === 0) {
-                try {
-                    const snap = await db.collection('usuarios').get();
-                    const list = [];
-                    snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
-                    if (list.length > 0) {
-                        colaboradores = list;
-                        localStorage.setItem('electrofrio_colaboradores', JSON.stringify(colaboradores));
-                    }
-                } catch(e) {}
-            }
             populateCollabFiltersList();
             populateModalCollabsSelect();
 
-            // 3. Fichajes desde caché (con deduplicación automática)
+            // 3. Fichajes desde caché (con deduplicación O(N) instantánea)
             const cachedFichajes = localStorage.getItem('electrofrio_fichajes');
             if (cachedFichajes) {
                 try {
                     fichajes = deduplicateFichajesList(JSON.parse(cachedFichajes));
-                    fichajes.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 } catch(e) {}
             }
 
@@ -2717,7 +2847,6 @@
             const now = getSyncedDate();
             dailyAttendanceSelectedDate = getLocalISODate(now);
 
-            // Pre-cargar filtros en el rango de los últimos 5 días
             const cincoDiasAtrasStr = getCincoDiasAtrasDateStr();
             const hoyISO = getLocalISODate(now);
 
@@ -2732,40 +2861,91 @@
                 filterFichajesHastaVal = hoyISO;
             }
 
-            renderAll();
+            // Renderizar interfaz y botón al instante (< 10ms)
             updateCollabFichajeUI();
+            renderAll();
 
-            // 5. Sincronización en tiempo real desde Firestore (Últimos 5 días para ahorrar lecturas)
-            try {
-                const cincoDiasAtrasISO = getCincoDiasAtrasISO();
-                unsubscribeFichajes = db.collection('fichajes')
-                    .where('timestamp', '>=', cincoDiasAtrasISO)
-                    .onSnapshot((snap) => {
-                        const updated = [];
-                        snap.forEach(doc => {
-                            const data = doc.data();
-                            updated.push({ ...data, id: doc.id });
+            // Precalentar GPS en segundo plano para que al tocar "Marcar Entrada/Salida" sea instantáneo
+            prewarmGeolocation();
+
+            // Escuchar cambios de sesión/rol desde el App Shell (index.html)
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'electrofrio_role' || e.key === 'electrofrio_name' || e.key === 'electrofrio_user') {
+                    applyRolePermissionsUI();
+                    updateCollabFichajeUI();
+                    renderAll();
+                }
+            });
+
+            // 5. Sincronización en segundo plano con Firestore una vez que Auth esté listo
+            function conectarFirestoreEnSegundoPlano(user) {
+                if (user && user.uid) {
+                    db.collection('usuarios').doc(user.uid).get().then(doc => {
+                        if (doc.exists) {
+                            const uData = doc.data();
+                            if (uData.role) localStorage.setItem('electrofrio_role', uData.role);
+                            if (uData.name) localStorage.setItem('electrofrio_name', uData.name);
+                            if (uData.username) localStorage.setItem('electrofrio_user', uData.username);
+                            applyRolePermissionsUI();
+                            updateCollabFichajeUI();
+                            renderAll();
+                        }
+                    }).catch(() => {});
+                }
+
+                if (colaboradores.length === 0) {
+                    db.collection('usuarios').get().then(snap => {
+                        const list = [];
+                        snap.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+                        if (list.length > 0) {
+                            colaboradores = list;
+                            localStorage.setItem('electrofrio_colaboradores', JSON.stringify(colaboradores));
+                            populateCollabFiltersList();
+                            populateModalCollabsSelect();
+                            if (isAdminRole()) renderTodayAttendanceControl();
+                        }
+                    }).catch(() => {});
+                }
+
+                if (unsubscribeFichajes) return;
+                try {
+                    const cincoDiasAtrasISO = getCincoDiasAtrasISO();
+                    unsubscribeFichajes = db.collection('fichajes')
+                        .where('timestamp', '>=', cincoDiasAtrasISO)
+                        .onSnapshot((snap) => {
+                            const updated = [];
+                            snap.forEach(doc => {
+                                const data = doc.data();
+                                updated.push({ ...data, id: doc.id });
+                            });
+
+                            const currentIds = new Set(updated.map(f => f.id));
+                            const merged = [...updated, ...fichajes.filter(f => !currentIds.has(f.id))];
+                            fichajes = deduplicateFichajesList(merged);
+                            localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+
+                            renderAll();
+                            updateCollabFichajeUI();
+                        }, err => {
+                            console.warn("Aviso al sincronizar fichajes:", err);
                         });
-                        updated.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                } catch(e) {}
+            }
 
-                        const currentIds = new Set(updated.map(f => f.id));
-                        const merged = [...updated, ...fichajes.filter(f => !currentIds.has(f.id))];
-                        fichajes = deduplicateFichajesList(merged);
-                        localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
-
-                        renderAll();
-                        updateCollabFichajeUI();
-                    }, err => {
-                        console.warn("Aviso al sincronizar fichajes:", err);
-                    });
-            } catch(e) {}
+            if (auth.currentUser) {
+                conectarFirestoreEnSegundoPlano(auth.currentUser);
+            } else {
+                auth.onAuthStateChanged((user) => {
+                    if (user) conectarFirestoreEnSegundoPlano(user);
+                });
+            }
         }
 
         // ==============================================================
         // HERRAMIENTA DE LIMPIEZA DE DUPLICADOS EN BASE DE DATOS
         // ==============================================================
         window.cleanDuplicateFichajes = async function() {
-            if (currentRole !== 'Administrador') {
+            if (!isAdminRole()) {
                 showToast("Solo los administradores pueden ejecutar la limpieza de duplicados.", "warning");
                 return;
             }
