@@ -1468,8 +1468,8 @@
                         if (distance <= allowedRadius) {
                             safeCallback(collab, userLat, userLng);
                         } else if (!isRetry) {
-                            console.warn(`Distancia inicial (${Math.round(distance)}m) > ${allowedRadius}m. Reintentando con GPS satelital...`);
-                            requestLocation({ enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }, true);
+                            console.warn(`Distancia inicial (${Math.round(distance)}m) > ${allowedRadius}m. Reintentando con GPS de alta precisión...`);
+                            requestLocation({ enableHighAccuracy: true, timeout: 5000, maximumAge: 15000 }, true);
                         } else {
                             safeRejected();
                             const msg = `No estás en el lugar autorizado para tomar el fichaje (distancia: ${Math.round(distance)}m). El rango permitido es de ${allowedRadius} metros a la redonda.`;
@@ -1480,7 +1480,7 @@
                     (error) => {
                         if (executed) return;
                         if (!isRetry && (error.code === 2 || error.code === 3)) {
-                            requestLocation({ enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }, true);
+                            requestLocation({ enableHighAccuracy: true, timeout: 5000, maximumAge: 15000 }, true);
                             return;
                         }
                         safeRejected();
@@ -1494,7 +1494,8 @@
                 );
             }
 
-            requestLocation({ enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
+            // Uso de caché reciente de hasta 60s para respuesta instantánea (< 100ms)
+            requestLocation({ enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 });
         }
 
         // RELOJ DIGITAL EN VIVO
@@ -1681,14 +1682,13 @@
 
                 verifyGeolocationAndExecute(async (collab, userLat, userLng) => {
                     try {
-                        if (btnUnico) btnUnico.textContent = 'Registrando...';
                         const punchNow = getSyncedDate();
                         const dateVal = getLocalISODate(punchNow);
                         const timeVal = formatTime12h(punchNow);
                         const timestampStr = punchNow.toISOString();
                         const isVerified = userLat !== null && userLng !== null;
 
-                        // 1. Guardia anti-duplicados previa en memoria (dentro de los últimos 3 minutos)
+                        // Guardia anti-duplicados ultra rápida en memoria (< 1ms)
                         const hasRecentDuplicate = fichajes.some(f => {
                             const matchCollab = (f.name && currentName && f.name.trim().toLowerCase() === currentName.trim().toLowerCase()) ||
                                                 (f.username && currentUser && f.username.trim().toLowerCase() === currentUser.trim().toLowerCase());
@@ -1708,38 +1708,7 @@
                             return;
                         }
 
-                        // 2. Guardia anti-duplicados directa en Firestore
-                        if (typeof db !== 'undefined' && db) {
-                            try {
-                                const checkSnap = await db.collection('fichajes')
-                                    .where('date', '==', dateVal)
-                                    .where('type', '==', intendedType)
-                                    .get();
-
-                                let foundOnlineDup = false;
-                                checkSnap.forEach(doc => {
-                                    const d = doc.data();
-                                    const matchCollab = (d.name && currentName && d.name.trim().toLowerCase() === currentName.trim().toLowerCase()) ||
-                                                        (d.username && currentUser && d.username.trim().toLowerCase() === currentUser.trim().toLowerCase());
-                                    if (matchCollab) {
-                                        if (d.timestamp) {
-                                            const diff = Math.abs(punchNow.getTime() - new Date(d.timestamp).getTime());
-                                            if (diff < 180000) foundOnlineDup = true;
-                                        } else if (d.time === timeVal) {
-                                            foundOnlineDup = true;
-                                        }
-                                    }
-                                });
-
-                                if (foundOnlineDup) {
-                                    showToast(`Tu ${intendedType} ya se encuentra registrada en el sistema.`, "info");
-                                    return;
-                                }
-                            } catch(e) {
-                                console.warn("Validación de duplicados en línea omitida:", e);
-                            }
-                        }
-
+                        const tempId = `fichaje-${Date.now()}`;
                         const nuevoFichajeData = {
                             name: currentName,
                             username: currentUser,
@@ -1755,31 +1724,39 @@
                             }
                         };
 
-                        let assignedId = `fichaje-${Date.now()}`;
+                        const nuevoFichaje = { id: tempId, ...nuevoFichajeData };
 
-                        // 3. Guardar en Firestore con el ID nativo del documento (idempotente)
-                        if (typeof db !== 'undefined' && db) {
-                            const docRef = await db.collection('fichajes').add(nuevoFichajeData);
-                            assignedId = docRef.id;
-
-                            if (collab && collab.uid) {
-                                await db.collection('usuarios').doc(collab.uid).update({
-                                    status: intendedType === 'Entrada' ? 'online' : 'offline'
-                                }).catch(() => {});
-                            }
-                        }
-
-                        const nuevoFichaje = { id: assignedId, ...nuevoFichajeData };
+                        // ⚡ RESPUESTA OPTIMISTA INMEDIATA (< 50ms): Interfaz lista y sonido/toast al instante
                         fichajes.unshift(nuevoFichaje);
                         fichajes = deduplicateFichajesList(fichajes);
                         localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
 
                         renderAll();
+                        updateCollabFichajeUI();
                         showToast(`¡${intendedType} registrada con éxito!`, 'success');
-                        
+
                         // Notificar al index si estamos dentro de un iframe
                         if (window.parent && window.parent !== window) {
                             window.parent.postMessage({ type: 'FICHAJE_UPDATED' }, '*');
+                        }
+
+                        // Sincronización en segundo plano con Firestore (no bloquea al usuario)
+                        if (typeof db !== 'undefined' && db) {
+                            db.collection('fichajes').add(nuevoFichajeData).then(docRef => {
+                                const found = fichajes.find(f => f.id === tempId);
+                                if (found) {
+                                    found.id = docRef.id;
+                                    localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+                                }
+                            }).catch(err => {
+                                console.warn("Aviso al persistir fichaje en segundo plano:", err);
+                            });
+
+                            if (collab && collab.uid) {
+                                db.collection('usuarios').doc(collab.uid).update({
+                                    status: intendedType === 'Entrada' ? 'online' : 'offline'
+                                }).catch(() => {});
+                            }
                         }
                     } catch (err) {
                         console.error("Error al guardar fichaje:", err);
@@ -2556,15 +2533,25 @@
                         gps: gpsObj,
                         observacion: obsVal
                     };
-                    await db.collection('fichajes').doc(editFichajeId).update(updatePayload);
 
                     const idx = fichajes.findIndex(f => f.id === editFichajeId);
                     if (idx > -1) {
                         fichajes[idx] = { ...fichajes[idx], ...updatePayload };
                     }
+                    localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+                    closeModalFichaje();
+                    renderAll();
                     showToast("Fichaje actualizado con éxito", "success");
+
+                    if (typeof db !== 'undefined' && db) {
+                        db.collection('fichajes').doc(editFichajeId).update(updatePayload).catch(err => {
+                            console.error("Error al actualizar en Firestore:", err);
+                        });
+                    }
                 } else {
+                    const tempId = `fichaje-man-${Date.now()}`;
                     const nuevo = {
+                        id: tempId,
                         name: collabName,
                         username: username,
                         date: dateVal,
@@ -2574,15 +2561,26 @@
                         gps: gpsObj,
                         observacion: obsVal
                     };
-                    const docRef = await db.collection('fichajes').add(nuevo);
-                    nuevo.id = docRef.id;
                     fichajes.unshift(nuevo);
+                    fichajes = deduplicateFichajesList(fichajes);
+                    localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+                    closeModalFichaje();
+                    renderAll();
                     showToast("Fichaje manual registrado con éxito", "success");
-                }
 
-                localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
-                closeModalFichaje();
-                renderAll();
+                    if (typeof db !== 'undefined' && db) {
+                        const { id, ...dataToSave } = nuevo;
+                        db.collection('fichajes').add(dataToSave).then(docRef => {
+                            const found = fichajes.find(f => f.id === tempId);
+                            if (found) {
+                                found.id = docRef.id;
+                                localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+                            }
+                        }).catch(err => {
+                            console.error("Error al guardar fichaje manual en Firestore:", err);
+                        });
+                    }
+                }
                 updateCollabFichajeUI();
 
                 if (window.parent && window.parent !== window) {
