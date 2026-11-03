@@ -1022,6 +1022,10 @@
             }
         } catch(e) {}
         let planillas = [];
+        try {
+            const cachedSheets = localStorage.getItem('electrofrio_worksheets');
+            if (cachedSheets) planillas = JSON.parse(cachedSheets) || [];
+        } catch(e) {}
         window._mostrarHistorialCompleto = false;
         window._ordenesHistorialCargado = false;
         window._ordenesHistorial = [];
@@ -1536,6 +1540,15 @@
                     formattedTime = orderTimeStr || '<span style="color:var(--text-muted); font-style:italic;">Pendiente</span>';
                 }
 
+                const linkedSheet = planillas.find(p => p.orderId === o.id && p.status === 'Borrador') || planillas.find(p => p.orderId === o.id);
+                const hasDraft = linkedSheet && linkedSheet.status === 'Borrador';
+                const planillaBtnLabel = hasDraft
+                    ? `<button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #ff9800; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Planilla en Borrador devuelta para revisión">✏️ Revisar Planilla</button>`
+                    : (linkedSheet
+                        ? `<button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #00bcd4; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Ver / Editar Planilla (${linkedSheet.pdtCode || linkedSheet.id})">📋 Planilla</button>`
+                        : `<button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #00bcd4; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Crear Planilla de Trabajo">📋 Planilla</button>`
+                    );
+
                 const actionTd = role === 'Administrador' ? `
                     <td data-label="ACCIONES">
                         <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap;">
@@ -1545,7 +1558,7 @@
                                 <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">Ver</button>
                             `}
                             <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #24364e; color: #ffffff; border: 1px solid var(--border-color);" onclick="openOrderDetailsModal('${o.id}')">Editar</button>
-                            <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #00bcd4; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Crear Planilla de Trabajo">📋 Planilla</button>
+                            ${planillaBtnLabel}
                             <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #7a1a1a; color: #ffffff; border: 1px solid #992020;" onclick="handleDeleteOrder('${o.id}')">Eliminar</button>
                         </div>
                     </td>
@@ -1553,7 +1566,7 @@
                     <td data-label="ACCIONES">
                         <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap;">
                             <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">${rowType === 'completado' ? 'Ver' : 'Ver / Estado'}</button>
-                            <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #00bcd4; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Crear Planilla de Trabajo">📋 Planilla</button>
+                            ${planillaBtnLabel}
                         </div>
                     </td>
                 `;
@@ -2246,6 +2259,60 @@
                 if (btnDetailDelete) btnDetailDelete.style.display = 'block';
             }
 
+            // Sincronizar aviso y botón de planilla con el estado real
+            const linkedSheetInModal = planillas.find(p => p.orderId === ord.id && p.status === 'Borrador') ||
+                                       planillas.find(p => p.orderId === ord.id);
+            const noticePlanilla = document.getElementById('status-notice-planilla');
+            if (noticePlanilla) {
+                if (linkedSheetInModal && linkedSheetInModal.status === 'Borrador') {
+                    noticePlanilla.style.backgroundColor = 'rgba(255, 152, 0, 0.15)';
+                    noticePlanilla.style.borderColor = 'rgba(255, 152, 0, 0.4)';
+                    noticePlanilla.style.color = '#ffb74d';
+                    noticePlanilla.innerHTML = `
+                        <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                            ⚠️ Planilla en Revisión / Borrador
+                        </div>
+                        Esta orden tiene una planilla devuelta para revisión. Puede revisar y modificar los datos antes de reenviarla.
+                        <div style="margin-top: 8px;">
+                            <button type="button" class="save-btn" id="btnOpenPlanillaFromNotice" style="width: auto; padding: 6px 12px; font-size: 12px; background-color: #ff9800; color: #000; font-weight: 700; border-radius: 6px;">
+                                ✏️ Revisar y Editar Planilla
+                            </button>
+                        </div>
+                    `;
+                } else if (linkedSheetInModal) {
+                    noticePlanilla.style.backgroundColor = 'rgba(0, 191, 255, 0.12)';
+                    noticePlanilla.style.borderColor = 'rgba(0, 191, 255, 0.3)';
+                    noticePlanilla.style.color = '#80d8ff';
+                    const codeDisplay = linkedSheetInModal.pdtCode || linkedSheetInModal.id;
+                    noticePlanilla.innerHTML = `
+                        <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                            📋 Planilla de Trabajo Registrada (${codeDisplay})
+                        </div>
+                        Esta orden ya cuenta con una planilla registrada. Puede editarla si necesita actualizar información.
+                        <div style="margin-top: 8px;">
+                            <button type="button" class="save-btn" id="btnOpenPlanillaFromNotice" style="width: auto; padding: 6px 12px; font-size: 12px; background-color: var(--color-blue); color: #000; font-weight: 700; border-radius: 6px;">
+                                ✏️ Editar Planilla de Trabajo
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    noticePlanilla.style.backgroundColor = 'rgba(0, 191, 255, 0.12)';
+                    noticePlanilla.style.borderColor = 'rgba(0, 191, 255, 0.3)';
+                    noticePlanilla.style.color = '#80d8ff';
+                    noticePlanilla.innerHTML = `
+                        <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                            📋 Planilla de Trabajo Disponible
+                        </div>
+                        Se recomienda llenar la planilla de trabajo para registrar los detalles técnicos y materiales del servicio.
+                        <div style="margin-top: 8px;">
+                            <button type="button" class="save-btn" id="btnOpenPlanillaFromNotice" style="width: auto; padding: 6px 12px; font-size: 12px; background-color: var(--color-blue); color: #000; font-weight: 700; border-radius: 6px;">
+                                + Llenar Planilla de Trabajo
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+
             // Botón Llenar Planilla desde Aviso
             const btnOpenPlanillaNotice = document.getElementById('btnOpenPlanillaFromNotice');
             if (btnOpenPlanillaNotice) {
@@ -2688,6 +2755,16 @@
             if (event.data.type === 'OPEN_NEW_ORDER') {
                 openAddOrderModal();
             }
+            if (event.data.type === 'ORDER_UPDATED' || event.data.type === 'ORDER_COMPLETED') {
+                try {
+                    const cached = localStorage.getItem('electrofrio_workorders');
+                    if (cached) ordenesTrabajo = JSON.parse(cached) || ordenesTrabajo;
+                    const cachedSheets = localStorage.getItem('electrofrio_worksheets');
+                    if (cachedSheets) planillas = JSON.parse(cachedSheets) || planillas;
+                    renderOrdersFullTable();
+                    renderLiveWorkSummary();
+                } catch(e) {}
+            }
         });
 
         function updateCollabFilterOptions() {
@@ -2781,6 +2858,23 @@
                 renderLiveWorkSummary();
             }, err => {
                 console.warn("Aviso al sincronizar órdenes en vivo:", err);
+            });
+
+            // D. Colección Planillas (sincronizar estado en tiempo real para badges y botones de revisión)
+            db.collection('planillas').onSnapshot(snap => {
+                const list = [];
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    list.push(data);
+                });
+                planillas = list;
+                try {
+                    localStorage.setItem('electrofrio_worksheets', JSON.stringify(planillas));
+                } catch(e) {}
+                renderOrdersFullTable();
+            }, err => {
+                console.warn("Aviso al sincronizar planillas en tiempo real en ordenes:", err);
             });
         }
 

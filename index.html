@@ -1084,6 +1084,21 @@
                 }
             }
 
+            // Orden Actualizada (ej. devuelta a borrador o modificada)
+            if (event.data.type === 'ORDER_UPDATED' && event.data.orderId) {
+                const cachedOrders = localStorage.getItem('electrofrio_workorders');
+                if (cachedOrders) {
+                    try {
+                        const list = JSON.parse(cachedOrders);
+                        const idx = list.findIndex(o => o.id === event.data.orderId);
+                        if (idx > -1 && event.data.status) {
+                            list[idx].status = event.data.status;
+                            localStorage.setItem('electrofrio_workorders', JSON.stringify(list));
+                        }
+                    } catch(e) {}
+                }
+            }
+
             // Retransmisión / Broadcast a todos los iframes activos para mantener sincronía
             const broadcastEvents = [
                 'FICHAJE_UPDATED',

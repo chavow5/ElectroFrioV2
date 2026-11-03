@@ -993,8 +993,12 @@
         }
 
         function getPdtCodeForSheet(p) {
-            if (p.status === 'Borrador') return 'Borrador';
-            if (p.pdtCode) return p.pdtCode;
+            if (p.status === 'Borrador') {
+                const baseCode = p.originalPdtCode || (p.pdtCode && p.pdtCode !== 'Borrador' ? p.pdtCode : (typeof p.id === 'string' && p.id.startsWith('PDT-') ? p.id : ''));
+                return baseCode ? `${baseCode} (Borrador)` : 'Borrador';
+            }
+            if (p.pdtCode && p.pdtCode !== 'Borrador') return p.pdtCode;
+            if (p.originalPdtCode) return p.originalPdtCode;
             if (typeof p.id === 'string' && p.id.startsWith('PDT-')) return p.id;
             return p.id ? `#${p.id.slice(-6)}` : 'PDT';
         }
@@ -1595,16 +1599,44 @@
             if (confirm('¿Estás seguro de que deseas devolver esta planilla a Borrador? Esto la enviará al técnico para su revisión.')) {
                 try {
                     const idx = planillas.findIndex(p => p.id === planillaId);
+                    let targetOrderId = null;
+                    let origCode = "";
                     if (idx > -1) {
                         planillas[idx].status = 'Borrador';
-                        planillas[idx].pdtCode = 'Borrador';
+                        if (planillas[idx].pdtCode && planillas[idx].pdtCode !== 'Borrador') {
+                            origCode = planillas[idx].pdtCode;
+                            planillas[idx].originalPdtCode = origCode;
+                        } else if (planillas[idx].originalPdtCode) {
+                            origCode = planillas[idx].originalPdtCode;
+                        }
+                        targetOrderId = planillas[idx].orderId;
                         localStorage.setItem('electrofrio_worksheets', JSON.stringify(planillas));
                     }
                     if (typeof db !== 'undefined') {
-                        await db.collection('planillas').doc(planillaId).update({ status: 'Borrador', pdtCode: 'Borrador' });
+                        const updObj = { status: 'Borrador' };
+                        if (origCode) updObj.originalPdtCode = origCode;
+                        await db.collection('planillas').doc(planillaId).update(updObj);
+                    }
+                    if (targetOrderId) {
+                        try {
+                            const localOrders = JSON.parse(localStorage.getItem('electrofrio_workorders') || '[]');
+                            const ordIdx = localOrders.findIndex(o => o.id === targetOrderId);
+                            if (ordIdx > -1) {
+                                localOrders[ordIdx].status = 'En Proceso';
+                                localStorage.setItem('electrofrio_workorders', JSON.stringify(localOrders));
+                            }
+                            if (typeof db !== 'undefined') {
+                                await db.collection('ordenes').doc(targetOrderId).update({ status: 'En Proceso' });
+                            }
+                            if (window.parent && window.parent !== window) {
+                                window.parent.postMessage({ type: 'ORDER_UPDATED', orderId: targetOrderId, status: 'En Proceso' }, '*');
+                            }
+                        } catch (errOrd) {
+                            console.warn("Aviso al actualizar orden asociada:", errOrd);
+                        }
                     }
                     renderWorksheetsTable();
-                    showToast('Planilla devuelta a Borrador exitosamente.', 'success');
+                    showToast('Planilla devuelta a Borrador para revisión del técnico.', 'success');
                 } catch (e) {
                     console.error('Error al devolver a borrador:', e);
                     showToast('Error al devolver a borrador: ' + e.message, 'error');
@@ -2500,6 +2532,21 @@
 
         // Abre la planilla para una Orden de Trabajo asignada
         window.openPlanillaForOrder = function(orderId, ord) {
+            if (!planillas || planillas.length === 0) {
+                try {
+                    planillas = JSON.parse(localStorage.getItem("electrofrio_worksheets") || "[]");
+                } catch(e){}
+            }
+
+            // 1. Si ya existe una planilla vinculada a esta orden (priorizando borrador devuelto para revisión), abrir en modo edición
+            const existingSheet = planillas.find(p => p.orderId === orderId && p.status === 'Borrador') ||
+                                  planillas.find(p => p.orderId === orderId);
+            if (existingSheet) {
+                window.openPlanillaDigitalForEdit(existingSheet.id);
+                window.pdigCurrentOrderId = existingSheet.orderId || orderId;
+                return;
+            }
+
             window.openPlanillaDigitalModalCentered();
             if (!ord) {
                 try {
@@ -3008,6 +3055,8 @@
             if (statusVal !== "Borrador") {
                 if (existingPlanilla && existingPlanilla.pdtCode && existingPlanilla.pdtCode !== "Borrador") {
                     pdtCodeToSave = existingPlanilla.pdtCode;
+                } else if (existingPlanilla && existingPlanilla.originalPdtCode && existingPlanilla.originalPdtCode !== "Borrador") {
+                    pdtCodeToSave = existingPlanilla.originalPdtCode;
                 } else if (existingPlanilla && typeof existingPlanilla.id === 'string' && existingPlanilla.id.startsWith('PDT-')) {
                     pdtCodeToSave = existingPlanilla.id;
                 } else {
@@ -3024,7 +3073,7 @@
                     docId = `BORRADOR-${Date.now()}`;
                 }
             } else if (pdtCodeToSave && pdtCodeToSave !== "Borrador") {
-                docId = (typeof docId === "string" && docId.startsWith("PDT-")) ? docId : pdtCodeToSave;
+                docId = (typeof docId === "string" && docId.startsWith("PDT-")) ? docId : (existingPlanilla && typeof existingPlanilla.id === "string" && existingPlanilla.id.startsWith("PDT-") ? existingPlanilla.id : pdtCodeToSave);
             }
 
             const docRef = db.collection("planillas").doc(docId);
@@ -3033,6 +3082,7 @@
                 id: docId,
                 orderId: window.pdigCurrentOrderId || (existingPlanilla ? existingPlanilla.orderId || "" : ""),
                 pdtCode: pdtCodeToSave,
+                originalPdtCode: existingPlanilla ? (existingPlanilla.originalPdtCode || (existingPlanilla.pdtCode !== 'Borrador' ? existingPlanilla.pdtCode : '') || '') : '',
                 date: dateDisplay,
                 client: clienteVal || "Cliente Particular",
                 clientId: clienteIdVal || "",
@@ -3049,19 +3099,31 @@
                 spareParts: matList.join(", ") || "Ninguno",
                 observations: obsVal || "Sin observaciones",
                 status: statusVal,
-                estadoPDT: existingPlanilla ? (existingPlanilla.estadoPDT || "NO REALIZADO") : "NO REALIZADO",
+                estadoPDT: (existingPlanilla && existingPlanilla.estadoPDT === 'REVISAR' && statusVal !== 'Borrador')
+                    ? 'ENVIADO'
+                    : (existingPlanilla ? (existingPlanilla.estadoPDT || "NO REALIZADO") : "NO REALIZADO"),
                 impreso: existingPlanilla ? (existingPlanilla.impreso || "NO") : "NO",
                 cargado_por: document.getElementById("pdig-cargado-por").value || (existingPlanilla ? existingPlanilla.cargado_por || "Usuario" : "Usuario"),
                 timestamp: existingPlanilla ? (existingPlanilla.timestamp || new Date().toISOString()) : new Date().toISOString()
             };
 
-            const idx = planillas.findIndex(p => p.id === docRef.id);
-            if (idx > -1) {
-                planillas[idx] = { ...planillas[idx], ...dataToSave };
+            // Actualizar en el array local reemplazando el registro original (incluso si cambió de BORRADOR-xxx a PDT-xxx)
+            const targetIdx = planillas.findIndex(p => p.id === docId || (planillaId && p.id === planillaId));
+            if (targetIdx > -1) {
+                planillas[targetIdx] = { ...planillas[targetIdx], ...dataToSave };
             } else {
                 planillas.unshift(dataToSave);
             }
             localStorage.setItem("electrofrio_worksheets", JSON.stringify(planillas));
+
+            // Si el ID cambió de BORRADOR-xxx a PDT-xxx, borrar el documento de borrador anterior de Firestore para evitar duplicados
+            if (planillaId && planillaId !== docId) {
+                try {
+                    await db.collection("planillas").doc(planillaId).delete();
+                } catch(delErr) {
+                    console.warn("Aviso al limpiar borrador previo en Firestore:", delErr);
+                }
+            }
 
             if (window.pdigCurrentOrderId && statusVal !== "Borrador") {
                 try {
@@ -3071,8 +3133,12 @@
                         localOrders[ordIdx].status = "Completado";
                         localStorage.setItem("electrofrio_workorders", JSON.stringify(localOrders));
                     }
+                    if (typeof db !== "undefined") {
+                        await db.collection("ordenes").doc(window.pdigCurrentOrderId).update({ status: "Completado" });
+                    }
                     if (window.parent && window.parent !== window) {
                         window.parent.postMessage({ type: "ORDER_COMPLETED", orderId: window.pdigCurrentOrderId }, "*");
+                        window.parent.postMessage({ type: "ORDER_UPDATED", orderId: window.pdigCurrentOrderId, status: "Completado" }, "*");
                     }
                 } catch(e) {
                     console.warn(e);
@@ -3087,9 +3153,6 @@
 
             try {
                 await docRef.set(dataToSave, { merge: true });
-                if (window.pdigCurrentOrderId && statusVal !== "Borrador") {
-                    await db.collection("ordenes").doc(window.pdigCurrentOrderId).update({ status: "Completado" });
-                }
             } catch (err) {
                 console.warn("Aviso al guardar en Firestore:", err);
             }
