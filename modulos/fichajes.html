@@ -1627,15 +1627,18 @@
             const adminActions = document.getElementById('adminHeaderActions');
             const collabSec = document.getElementById('sectionCollabFichaje');
 
+            const titleEl = document.getElementById('fichajesTitle');
             if (isAdmin) {
                 if (adminSec) adminSec.style.display = 'block';
                 if (adminActions) adminActions.style.display = 'flex';
                 if (collabSec) collabSec.style.display = 'block';
+                if (titleEl) titleEl.textContent = "Historial General de Fichajes";
                 document.querySelectorAll('.role-admin-only').forEach(el => el.style.display = '');
             } else {
                 if (adminSec) adminSec.style.display = 'none';
                 if (adminActions) adminActions.style.display = 'none';
                 if (collabSec) collabSec.style.display = 'block';
+                if (titleEl) titleEl.textContent = "Mis Fichajes de Hoy";
                 document.querySelectorAll('.role-admin-only').forEach(el => el.style.display = 'none');
                 closeModalFichaje();
             }
@@ -2621,9 +2624,9 @@
 
             let list = [];
             if (!isAdmin) {
-                // Los colaboradores (y cualquier rol NO Administrador) SOLO ven sus propios registros
-                list = fichajes.filter(f => isOwnFichajeRecord(f));
-                if (titleEl) titleEl.textContent = "Mis Registros de Fichaje";
+                // Los colaboradores (y cualquier rol NO Administrador) SOLO ven sus propios registros DEL DÍA ACTUAL (hoy)
+                list = fichajes.filter(f => isOwnFichajeRecord(f) && (isFichajeToday(f.date, f.timestamp) || getFichajeStandardDate(f).iso === getLocalISODate(getSyncedDate())));
+                if (titleEl) titleEl.textContent = "Mis Fichajes de Hoy";
             } else {
                 if (titleEl) titleEl.textContent = "Historial General de Fichajes";
                 list = fichajes.filter(f => {
@@ -2657,7 +2660,7 @@
 
             if (list.length === 0) {
                 const msg = !isAdmin
-                    ? "No tienes registros de fichajes cargados."
+                    ? "No tienes fichajes registrados hoy."
                     : "No se encontraron fichajes con los filtros seleccionados.";
                 tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">${msg}</td></tr>`;
                 return;

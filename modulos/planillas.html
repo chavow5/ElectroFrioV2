@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Planillas de Trabajo (PDT) - ElectroFrío</title>
     <!-- Favicon -->
     <link rel="shortcut icon" href="../assets/icon.png?v=3" type="image/png">
@@ -30,14 +30,19 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        html, body {
+        html {
             margin: 0;
             padding: 0;
             width: 100%;
+            max-width: 100vw;
             min-height: 100%;
+            overflow-x: hidden;
+            touch-action: pan-y;
+            -webkit-text-size-adjust: 100%;
         }
 
         body {
+            margin: 0;
             padding: 24px 30px;
             background-color: var(--bg-main, #0b1320);
             color: var(--text-primary, #ffffff);
@@ -48,6 +53,10 @@
             align-items: stretch !important;
             overflow-x: hidden;
             overflow-y: auto;
+            width: 100%;
+            max-width: 100vw;
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
         }
 
         .pdt-header-card {
@@ -379,16 +388,43 @@
         /* ==============================================================
            RESPONSIVE MÓVIL PROFESIONAL (<= 768px)
            ============================================================== */
+        /* ==============================================================
+           RESPONSIVE MÓVIL PROFESIONAL (<= 768px)
+           ============================================================== */
         @media (max-width: 768px) {
+            /* 1. ELIMINAR ZOOM AUTOMÁTICO AL HACER CLIC EN CUALQUIER CAMPO EN MÓVIL */
+            input:not([type="checkbox"]):not([type="radio"]),
+            select,
+            textarea,
+            .inline-input,
+            .inline-select,
+            .filter-select,
+            .search-input {
+                font-size: 16px !important;
+            }
+
+            /* 2. BLOQUEAR DESPLAZAMIENTO HACIA LOS COSTADOS (CERO OVERFLOW-X) */
+            html {
+                overflow-x: hidden !important;
+                max-width: 100vw !important;
+                width: 100% !important;
+            }
+
             body {
-                padding: 12px 10px !important;
+                padding: 10px 8px !important;
+                overflow-x: hidden !important;
+                max-width: 100vw !important;
+                width: 100% !important;
             }
 
             .pdt-header-card {
                 flex-direction: column;
                 align-items: stretch;
                 gap: 12px;
-                padding: 14px;
+                padding: 14px 12px;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
             }
             .pdt-header-title {
                 text-align: center;
@@ -405,22 +441,45 @@
             .history-card {
                 padding: 14px 10px !important;
                 border-radius: 12px;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden !important;
             }
 
             .filters-bar {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 8px;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
             }
             .filter-select, .search-input, .btn-excel {
                 width: 100% !important;
-                min-width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+                text-overflow: ellipsis !important;
+                overflow: hidden !important;
             }
             .btn-excel {
                 justify-content: center;
             }
 
-            /* Convertir tabla en tarjetas verticales táctiles */
+            /* Contenedor de tabla en móvil: sin scroll horizontal */
+            .table-responsive {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow-x: hidden !important;
+            }
+
+            /* Convertir tabla en tarjetas verticales táctiles seguras contra desbordes */
+            .custom-table {
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
             .custom-table thead {
                 display: none !important;
             }
@@ -430,13 +489,17 @@
             .custom-table td {
                 display: block !important;
                 width: 100% !important;
+                box-sizing: border-box !important;
             }
             .custom-table tr {
                 background: rgba(10, 17, 28, 0.45) !important;
                 margin-bottom: 14px !important;
                 border: 1px solid var(--border-color) !important;
                 border-radius: 12px !important;
-                padding: 12px 14px !important;
+                padding: 12px 10px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow: hidden !important;
             }
             .custom-table td {
                 border: none !important;
@@ -445,6 +508,11 @@
                 justify-content: space-between !important;
                 align-items: center !important;
                 text-align: right !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+                gap: 8px !important;
             }
             .custom-table td::before {
                 content: attr(data-label);
@@ -453,32 +521,74 @@
                 color: var(--text-secondary);
                 text-transform: uppercase;
                 text-align: left;
-                margin-right: 12px;
+                margin-right: 0 !important;
                 flex-shrink: 0;
-            }
-            .action-btns-group {
-                width: 100%;
-                justify-content: flex-end;
-                gap: 8px;
-                margin-top: 6px;
-                border-top: 1px dashed var(--border-color);
-                padding-top: 8px;
-            }
-            .action-icon-btn {
-                width: 36px;
-                height: 36px;
+                max-width: 44% !important;
+                word-break: break-word !important;
             }
 
-            /* Modales en móvil: ocupan casi toda la pantalla */
+            /* Valores y spans dentro de la celda */
+            .custom-table td > span,
+            .custom-table td > div:not(.action-btns-group) {
+                max-width: 55%;
+                word-break: break-word;
+                text-align: right;
+            }
+
+            /* Inputs y selects editables dentro de la tarjeta (Mano de Obra, Materiales, Estado, etc.) */
+            .custom-table td .inline-input,
+            .custom-table td .inline-select {
+                max-width: 55% !important;
+                min-width: 0 !important;
+                width: 55% !important;
+                flex: 0 1 55% !important;
+                box-sizing: border-box !important;
+                text-overflow: ellipsis;
+            }
+
+            /* Fila de ACCIONES: ocupar todo el ancho inferior centrada, sin label que la desborde */
+            .custom-table td[data-label="ACCIONES"] {
+                display: block !important;
+                padding-top: 10px !important;
+                width: 100% !important;
+            }
+            .custom-table td[data-label="ACCIONES"]::before {
+                display: none !important;
+            }
+            .custom-table td[data-label="ACCIONES"] .action-btns-group {
+                width: 100% !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                border-top: 1px dashed var(--border-color) !important;
+                padding-top: 10px !important;
+                margin-top: 4px !important;
+            }
+            .action-icon-btn {
+                width: 36px !important;
+                height: 36px !important;
+                min-width: 36px !important;
+                max-width: 36px !important;
+                flex-shrink: 0 !important;
+            }
+
+            /* Modales en móvil: ocupan casi toda la pantalla y no desbordan */
             .modal-overlay {
-                padding: 8px;
-                align-items: flex-end;
+                padding: 8px !important;
+                align-items: flex-end !important;
+                touch-action: pan-y !important;
             }
             .modal-content {
                 max-height: 94vh !important;
-                border-bottom-left-radius: 0;
-                border-bottom-right-radius: 0;
-                padding: 18px 14px;
+                border-bottom-left-radius: 0 !important;
+                border-bottom-right-radius: 0 !important;
+                padding: 16px 12px !important;
+                overflow-x: hidden !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
             }
             .pdig-horas-grid {
                 grid-template-columns: 1fr !important;
@@ -487,8 +597,46 @@
             .module-quick-buttons {
                 grid-template-columns: repeat(2, 1fr) !important;
             }
+            .pdig-grid-2col {
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+            }
             .pdig-footer-actions {
                 flex-direction: column !important;
+            }
+
+            /* Tablas de subformularios dentro de modales (Mano de Obra y Materiales) */
+            .modal-content .table-responsive {
+                overflow-x: auto !important;
+            }
+            .modal-content .custom-table {
+                display: table !important;
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            .modal-content .custom-table thead {
+                display: table-header-group !important;
+            }
+            .modal-content .custom-table tbody {
+                display: table-row-group !important;
+            }
+            .modal-content .custom-table tr {
+                display: table-row !important;
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .modal-content .custom-table td {
+                display: table-cell !important;
+                padding: 6px 4px !important;
+                text-align: left !important;
+                border-bottom: 1px solid rgba(30, 54, 86, 0.4) !important;
+                vertical-align: middle !important;
+            }
+            .modal-content .custom-table td::before {
+                display: none !important;
+                content: none !important;
             }
         }
     </style>
@@ -509,7 +657,7 @@
     <!-- TARJETA PRINCIPAL: HISTORIAL Y FILTROS -->
     <div class="history-card">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <h3 style="margin: 0; font-size: 18px; font-family: 'Outfit', sans-serif;">
+            <h3 id="pdtTableTitle" style="margin: 0; font-size: 18px; font-family: 'Outfit', sans-serif;">
                 Historial General de Planillas de Trabajo
             </h3>
         </div>
@@ -860,6 +1008,15 @@
             populateWorksheetAuthorDropdown();
             setupAutocomplete();
 
+            // Verificar si hay una orden pendiente de abrir planilla desde el enrutador
+            const pendingOrderPdt = localStorage.getItem('electrofrio_pending_order_pdt');
+            if (pendingOrderPdt) {
+                localStorage.removeItem('electrofrio_pending_order_pdt');
+                setTimeout(() => {
+                    window.openPlanillaForOrder(pendingOrderPdt);
+                }, 300);
+            }
+
             // Sincronizar en vivo con Firestore
             db.collection('planillas').onSnapshot((snap) => {
                 const list = [];
@@ -983,6 +1140,24 @@
             const tbody = document.getElementById('worksheetsTableBody');
             if (!tbody) return;
 
+            const role = localStorage.getItem('electrofrio_role') || 'Colaborador';
+            const isAdmin = role === 'Administrador';
+            const myName = (localStorage.getItem('electrofrio_name') || '').trim().toLowerCase();
+
+            // Sincronizar título y visibilidad según el rol
+            const titleElem = document.getElementById('pdtTableTitle');
+            if (titleElem) {
+                titleElem.textContent = isAdmin ? 'Historial General de Planillas de Trabajo' : 'Mis Planillas en Borrador';
+            }
+            const btnExcel = document.querySelector('.btn-excel');
+            if (btnExcel) {
+                btnExcel.style.display = isAdmin ? 'inline-flex' : 'none';
+            }
+            const authorFilterSelect = document.getElementById('filterWorksheetAuthor');
+            if (authorFilterSelect) {
+                authorFilterSelect.style.display = isAdmin ? '' : 'none';
+            }
+
             const searchVal = (document.getElementById('searchWorksheetInput')?.value || '').trim().toLowerCase();
             const weekFilter = document.getElementById('filterWorksheetWeek')?.value || '';
             const addressFilter = document.getElementById('filterWorksheetAddress')?.value || '';
@@ -990,6 +1165,15 @@
 
             // Filtrar planillas
             let filtered = planillas.filter(p => {
+                // REGLA: Los colaboradores solo crean planillas, no ven historial, solo ven los borradores
+                if (!isAdmin) {
+                    if (p.status !== 'Borrador') return false;
+                    const auth = (p.cargado_por || p.completedBy || '').trim().toLowerCase();
+                    const techs = Array.isArray(p.technicians) ? p.technicians.map(t => (t || '').trim().toLowerCase()) : [];
+                    const isMine = (auth && auth === myName) || techs.includes(myName) || (!auth && techs.length === 0);
+                    if (!isMine) return false;
+                }
+
                 if (weekFilter) {
                     const info = getSheetWeekKey(p);
                     if (!info || info.key !== weekFilter) return false;
@@ -998,7 +1182,7 @@
                     const addr = (p.address || p.domicilio || '').trim();
                     if (addr !== addressFilter) return false;
                 }
-                if (authorFilter) {
+                if (authorFilter && isAdmin) {
                     const auth = (p.cargado_por || p.completedBy || '').trim();
                     if (auth !== authorFilter) return false;
                 }
@@ -1054,7 +1238,10 @@
 
             tbody.innerHTML = '';
             if (displayed.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; color: var(--text-muted); padding: 30px;">No se encontraron planillas de trabajo con los filtros aplicados.</td></tr>`;
+                const emptyMsg = isAdmin 
+                    ? 'No se encontraron planillas de trabajo con los filtros aplicados.'
+                    : 'No tienes planillas en borrador pendientes. Puedes crear una nueva con el botón "+ Crear Planilla de Trabajo".';
+                tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; color: var(--text-muted); padding: 30px;">${emptyMsg}</td></tr>`;
                 return;
             }
 
@@ -1132,7 +1319,7 @@
                         </select>
                     </td>
                     <td data-label="ACCIONES" style="text-align: center;">
-                        <div class="action-btns-group" style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: nowrap;">
+                        <div class="action-btns-group" style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
                             ${role === 'Administrador' ? `
                             <button type="button" id="btn-save-${p.id}" class="action-icon-btn" onclick="savePlanillaManual('${p.id}')" title="Guardar Cambios" style="background-color: #2e7d32; border: 1px solid #1b5e20; border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; color: white;">💾</button>
                             ` : ''}
@@ -2200,14 +2387,21 @@
             const cont = document.getElementById("pdig-tecnicos-checkboxes");
             if (!cont) return;
             cont.innerHTML = "";
-            const myName = localStorage.getItem("electrofrio_name") || "";
+            const myName = (localStorage.getItem("electrofrio_name") || "").trim();
+            const myRole = localStorage.getItem("electrofrio_role") || "Colaborador";
 
-            colaboradores.forEach(c => {
+            // REGLA: En técnicos / responsables solo salen los colaboradores (excluir administradores)
+            const fieldCollabs = colaboradores.filter(c => {
+                const r = (c.role || '').toLowerCase();
+                return r !== 'administrador' && r !== 'admin' && !c.isAdmin;
+            });
+
+            fieldCollabs.forEach(c => {
                 const div = document.createElement("div");
                 div.style.display = "flex";
                 div.style.alignItems = "center";
                 div.style.gap = "6px";
-                const isChecked = c.name === myName ? "checked" : "";
+                const isChecked = (c.name === myName && myRole !== 'Administrador') ? "checked" : "";
                 div.innerHTML = `
                     <input type="checkbox" class="pdig-tech-cb" id="tech-${c.id || c.name}" value="${c.name}" ${isChecked} style="cursor: pointer; width: 16px; height: 16px;">
                     <label for="tech-${c.id || c.name}" style="font-size: 13px; cursor: pointer;">${c.name}</label>
@@ -2215,7 +2409,7 @@
                 cont.appendChild(div);
             });
 
-            if (colaboradores.length === 0 && myName) {
+            if (fieldCollabs.length === 0 && myRole !== 'Administrador' && myName) {
                 cont.innerHTML = `
                     <div style="display:flex; align-items:center; gap:6px;">
                         <input type="checkbox" class="pdig-tech-cb" id="tech-me" value="${myName}" checked style="cursor: pointer; width: 16px; height: 16px;">
@@ -2279,8 +2473,21 @@
             };
             renderAddressChoices(targetClient, ord.address || "");
 
+            // Prefill fecha
+            if (ord.date) {
+                const match = ord.date.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+                if (match) {
+                    const dd = match[1].padStart(2, "0");
+                    const mm = match[2].padStart(2, "0");
+                    const yyyy = match[3];
+                    document.getElementById("pdig-fecha").value = `${yyyy}-${mm}-${dd}`;
+                } else {
+                    document.getElementById("pdig-fecha").value = ord.date;
+                }
+            }
+
             const cbs = document.querySelectorAll(".pdig-tech-cb");
-            const assignees = ord.assignees || [];
+            const assignees = ord.assignees || (ord.assignee ? [ord.assignee] : []);
             if (assignees.length > 0) {
                 cbs.forEach(cb => {
                     cb.checked = assignees.some(name => name.trim().toLowerCase() === cb.value.trim().toLowerCase());
@@ -2291,6 +2498,13 @@
                 document.getElementById("pdig-hora-entrada").value = ord.time;
                 if (ord.timeEnd) {
                     document.getElementById("pdig-hora-salida").value = ord.timeEnd;
+                }
+            }
+
+            if (ord.observations) {
+                const obsEl = document.getElementById("pdig-observaciones");
+                if (obsEl && !obsEl.value) {
+                    obsEl.value = ord.observations;
                 }
             }
         };
@@ -2819,6 +3033,14 @@
                 }
             } catch (err) {
                 console.warn("Aviso al guardar en Firestore:", err);
+            }
+        });
+
+        // Receptor de mensajes postMessage desde ordenes y la ventana principal
+        window.addEventListener('message', (event) => {
+            if (!event.data) return;
+            if (event.data.type === 'OPEN_PLANILLA_FOR_ORDER' && event.data.orderId) {
+                window.openPlanillaForOrder(event.data.orderId);
             }
         });
 

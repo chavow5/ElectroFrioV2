@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ElectroFrío</title>
     <!-- PWA & Mobile Web App Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
@@ -475,7 +475,7 @@
 
                 <!-- 5. FICHAJES (MÓDULO INDEPENDIENTE) -->
                 <div id="mod-fichajes" class="page-content hidden">
-                    <iframe data-src="modulos/fichajes.html?v=6" style="width: 100%; height: calc(100vh - 72px); border: none;"></iframe>
+                    <iframe data-src="modulos/fichajes.html?v=7" style="width: 100%; height: calc(100vh - 72px); border: none;"></iframe>
                 </div>
 
                 <!-- 6. JORNALES (MÓDULO INDEPENDIENTE) -->
@@ -485,7 +485,7 @@
 
                 <!-- 7. PLANILLAS DE TRABAJO (MÓDULO INDEPENDIENTE) -->
                 <div id="mod-database" class="page-content hidden">
-                    <iframe data-src="modulos/planillas.html?v=2" style="width: 100%; height: calc(100vh - 72px); border: none;"></iframe>
+                    <iframe data-src="modulos/planillas.html?v=3" style="width: 100%; height: calc(100vh - 72px); border: none;"></iframe>
                 </div>
 
 
@@ -837,7 +837,6 @@
                         itemDashboard,
                         itemOrdenes,
                         itemTareas,
-                        itemCalendario,
                         itemDatabase,
                         itemFichajes,
                         itemGroupUtilidades
@@ -847,7 +846,6 @@
                         itemDashboard,
                         itemOrdenes,
                         itemTareas,
-                        itemCalendario,
                         itemDatabase,
                         itemFichajes
                     ];
@@ -859,6 +857,29 @@
                         el.style.order = index;
                     }
                 });
+
+                // Controlar subelementos de Utilidades
+                const itemPresupuesto = sidebarNav.querySelector('#submenuUtilidades [data-module="presupuesto"]');
+                const itemProveedores = sidebarNav.querySelector('#submenuUtilidades [data-module="proveedores"]');
+                const itemCrm = sidebarNav.querySelector('#submenuUtilidades [data-module="crm"]');
+                const itemCobros = sidebarNav.querySelector('#submenuUtilidades [data-module="cobros"]');
+
+                if (role === 'Administrador') {
+                    if (itemPresupuesto) itemPresupuesto.style.display = '';
+                    if (itemProveedores) itemProveedores.style.display = '';
+                    if (itemCrm) itemCrm.style.display = '';
+                    if (itemCobros) itemCobros.style.display = '';
+                } else if (isPremium) {
+                    if (itemPresupuesto) itemPresupuesto.style.display = '';
+                    if (itemProveedores) itemProveedores.style.display = 'none';
+                    if (itemCrm) itemCrm.style.display = 'none';
+                    if (itemCobros) itemCobros.style.display = 'none';
+                } else {
+                    if (itemPresupuesto) itemPresupuesto.style.display = 'none';
+                    if (itemProveedores) itemProveedores.style.display = 'none';
+                    if (itemCrm) itemCrm.style.display = 'none';
+                    if (itemCobros) itemCobros.style.display = 'none';
+                }
             }
 
             const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'EF';
@@ -885,9 +906,9 @@
             if (role === 'Administrador') {
                 allowedModules = ['dashboard', 'ordenes', 'tareas', 'calendario', 'mapa', 'fichajes', 'jornales', 'database', 'colaboradores', 'clientes', 'importaciones', 'materiales', 'manodeobra', 'presupuesto', 'proveedores', 'crm', 'cobros', 'configuracion'];
             } else if (isPremium) {
-                allowedModules = ['dashboard', 'ordenes', 'tareas', 'calendario', 'database', 'fichajes', 'presupuesto', 'proveedores', 'crm', 'cobros'];
+                allowedModules = ['dashboard', 'ordenes', 'tareas', 'database', 'fichajes', 'presupuesto'];
             } else {
-                allowedModules = ['dashboard', 'ordenes', 'tareas', 'calendario', 'database', 'fichajes'];
+                allowedModules = ['dashboard', 'ordenes', 'tareas', 'database', 'fichajes'];
             }
 
             if (!allowedModules.includes(moduleName)) {
@@ -1012,6 +1033,7 @@
         };
 
         window.openPlanillaModalForOrder = function(orderId) {
+            localStorage.setItem('electrofrio_pending_order_pdt', orderId);
             switchTab('database');
             const iframe = document.querySelector('#mod-database iframe');
             if (iframe) {

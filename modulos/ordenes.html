@@ -833,7 +833,7 @@
                     </div>
 
                     <!-- Cartel para Llenar Planilla de Trabajo -->
-                    <div id="status-notice-planilla" class="hidden" style="margin-top: 5px; padding: 12px; border-radius: 8px; background-color: rgba(0, 191, 255, 0.12); border: 1px solid rgba(0, 191, 255, 0.3); color: #80d8ff; font-size: 12px;">
+                    <div id="status-notice-planilla" style="margin-top: 5px; padding: 12px; border-radius: 8px; background-color: rgba(0, 191, 255, 0.12); border: 1px solid rgba(0, 191, 255, 0.3); color: #80d8ff; font-size: 12px;">
                         <div style="font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
                             📋 Planilla de Trabajo Disponible
                         </div>
@@ -1545,6 +1545,7 @@
                                 <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">Ver</button>
                             `}
                             <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #24364e; color: #ffffff; border: 1px solid var(--border-color);" onclick="openOrderDetailsModal('${o.id}')">Editar</button>
+                            <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #00bcd4; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Crear Planilla de Trabajo">📋 Planilla</button>
                             <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #7a1a1a; color: #ffffff; border: 1px solid #992020;" onclick="handleDeleteOrder('${o.id}')">Eliminar</button>
                         </div>
                     </td>
@@ -1552,6 +1553,7 @@
                     <td data-label="ACCIONES">
                         <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap;">
                             <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">${rowType === 'completado' ? 'Ver' : 'Ver / Estado'}</button>
+                            <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #00bcd4; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Crear Planilla de Trabajo">📋 Planilla</button>
                         </div>
                     </td>
                 `;
@@ -1693,7 +1695,10 @@
                             <td data-label="TAREA">${o.type}</td>
                             <td data-label="ESTADO"><span class="badge ${badgeData.class}">${badgeData.text}</span></td>
                             <td data-label="ACCIONES">
-                                <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">Ver</button>
+                                <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap;">
+                                    <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">Ver</button>
+                                    <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #00bcd4; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Crear Planilla de Trabajo">📋 Planilla</button>
+                                </div>
                             </td>
                         `;
                         collabCompletedBody.appendChild(tr);
@@ -2092,6 +2097,10 @@
             updateDetailOrderCollabAvailability();
         }
 
+        window.triggerCreatePlanillaForOrder = function(orderId) {
+            window.parent.postMessage({ type: 'OPEN_PLANILLA_FOR_ORDER', orderId: orderId }, '*');
+        };
+
         window.openOrderDetailsModal = function (orderId) {
             const ord = ordenesTrabajo.find(o => o.id === orderId);
             if (!ord) return;
@@ -2142,7 +2151,7 @@
                 const val = statusSelect.value;
                 const noticePlanilla = document.getElementById('status-notice-planilla');
                 const noticeReprogramar = document.getElementById('status-notice-reprogramar');
-                if (noticePlanilla) noticePlanilla.classList.toggle('hidden', val === 'Pendiente');
+                if (noticePlanilla) noticePlanilla.classList.remove('hidden');
                 if (noticeReprogramar) noticeReprogramar.classList.toggle('hidden', val !== 'Reprogramar');
             }
 
