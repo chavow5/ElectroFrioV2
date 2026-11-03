@@ -18,6 +18,9 @@
     <!-- SheetJS (XLSX Export) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+    <!-- Historial de Planillas (2.572 registros históricos locales) -->
+    <script src="../datos/historial_parsed.js"></script>
+
     <!-- Firebase SDK (Compat v9) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -222,6 +225,8 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
+            flex-wrap: nowrap !important;
+            white-space: nowrap !important;
         }
         .action-icon-btn {
             background: rgba(255, 255, 255, 0.05);
@@ -560,11 +565,12 @@
                 display: flex !important;
                 justify-content: center !important;
                 align-items: center !important;
-                flex-wrap: wrap !important;
+                flex-wrap: nowrap !important;
                 gap: 8px !important;
                 border-top: 1px dashed var(--border-color) !important;
                 padding-top: 10px !important;
                 margin-top: 4px !important;
+                overflow-x: auto !important;
             }
             .action-icon-btn {
                 width: 36px !important;
@@ -699,7 +705,7 @@
                         <th class="role-admin-only">MATERIALES</th>
                         <th class="role-admin-only">ESTADO</th>
                         <th class="role-admin-only" style="text-align: center; font-size: 14px;" title="¿Impreso?">🖨️</th>
-                        <th style="text-align: center;">ACCIONES</th>
+                        <th style="text-align: center; min-width: 195px; white-space: nowrap;">ACCIONES</th>
                     </tr>
                 </thead>
                 <tbody id="worksheetsTableBody">
@@ -1002,6 +1008,20 @@
                 planillas = JSON.parse(localStorage.getItem('electrofrio_worksheets') || '[]');
             } catch (e) {}
 
+            // Mergear historial local (2.572 registros) para asegurar acceso inmediato a todo el catálogo
+            if (window.localHistoricalPlanillas && Array.isArray(window.localHistoricalPlanillas)) {
+                const existingCodes = new Set(planillas.map(p => (p.pdtCode || p.id || '').toUpperCase()));
+                const missingHistory = window.localHistoricalPlanillas.filter(h => !existingCodes.has((h.pdtCode || h.id || '').toUpperCase()));
+                if (missingHistory.length > 0) {
+                    planillas = [...planillas, ...missingHistory];
+                    try {
+                        localStorage.setItem('electrofrio_worksheets', JSON.stringify(planillas));
+                    } catch(err) {
+                        console.warn("Aviso localStorage quota excedida al guardar historial:", err);
+                    }
+                }
+            }
+
             renderWorksheetsTable();
             populateWorksheetAddressDropdown();
             populateWorksheetWeekDropdown();
@@ -1023,11 +1043,27 @@
                 snap.forEach(doc => {
                     const data = doc.data();
                     data.id = doc.id;
+                    if (!data.pdtCode && typeof doc.id === 'string' && doc.id.startsWith('PDT-')) {
+                        data.pdtCode = doc.id;
+                    }
                     list.push(data);
                 });
-                if (list.length > 0) {
+
+                // Mergear documentos de Firestore con el historial compilado
+                if (window.localHistoricalPlanillas && Array.isArray(window.localHistoricalPlanillas)) {
+                    const firestoreCodes = new Set(list.map(s => (s.pdtCode || s.id || '').toUpperCase()));
+                    const missingHistory = window.localHistoricalPlanillas.filter(h => !firestoreCodes.has((h.pdtCode || h.id || '').toUpperCase()));
+                    planillas = [...list, ...missingHistory];
+                } else if (list.length > 0) {
                     planillas = list;
-                    localStorage.setItem('electrofrio_worksheets', JSON.stringify(list));
+                }
+
+                if (planillas.length > 0) {
+                    try {
+                        localStorage.setItem('electrofrio_worksheets', JSON.stringify(planillas));
+                    } catch(err) {
+                        console.warn("Aviso localStorage:", err);
+                    }
                     renderWorksheetsTable();
                     populateWorksheetAddressDropdown();
                     populateWorksheetWeekDropdown();
@@ -1195,7 +1231,8 @@
                     const mat = (p.materiales || '').toLowerCase();
                     const est = (p.estadoPDT || '').toLowerCase();
                     const obs = (p.observations || '').toLowerCase();
-                    const match = pCode.includes(searchVal) || client.includes(searchVal) || addr.includes(searchVal) || tech.includes(searchVal) || mo.includes(searchVal) || mat.includes(searchVal) || est.includes(searchVal) || obs.includes(searchVal);
+                    const idStr = (typeof p.id === 'string' ? p.id.toLowerCase() : '');
+                    const match = pCode.includes(searchVal) || idStr.includes(searchVal) || client.includes(searchVal) || addr.includes(searchVal) || tech.includes(searchVal) || mo.includes(searchVal) || mat.includes(searchVal) || est.includes(searchVal) || obs.includes(searchVal);
                     if (!match) return false;
                 }
                 return true;
@@ -1318,8 +1355,8 @@
                             <option value="SI" ${impresoVal === 'SI' ? 'selected' : ''} style="color: #4caf50; background: #16243d;">SI</option>
                         </select>
                     </td>
-                    <td data-label="ACCIONES" style="text-align: center;">
-                        <div class="action-btns-group" style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                    <td data-label="ACCIONES" style="text-align: center; white-space: nowrap; min-width: 195px;">
+                        <div class="action-btns-group" style="display: flex; gap: 6px; justify-content: center; align-items: center; flex-wrap: nowrap; white-space: nowrap;">
                             ${role === 'Administrador' ? `
                             <button type="button" id="btn-save-${p.id}" class="action-icon-btn" onclick="savePlanillaManual('${p.id}')" title="Guardar Cambios" style="background-color: #2e7d32; border: 1px solid #1b5e20; border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; color: white;">💾</button>
                             ` : ''}
@@ -2965,25 +3002,35 @@
 
             const techDetailsFormatted = areaSummaries.length > 0 ? areaSummaries.join(" || ") : (allMoList.length > 0 ? `Área: TAREAS VARIAS | Trabajos: ${allMoList.join(", ")}` : "Área: TAREAS VARIAS");
 
-            let docRef;
-            const existingPlanilla = planillaId ? planillas.find(p => p.id === planillaId) : null;
-            if (planillaId) {
-                docRef = db.collection("planillas").doc(planillaId);
-            } else {
-                docRef = db.collection("planillas").doc();
-            }
+            const existingPlanilla = planillaId ? planillas.find(p => p.id === planillaId || p.pdtCode === planillaId) : null;
 
             let pdtCodeToSave = "Borrador";
             if (statusVal !== "Borrador") {
                 if (existingPlanilla && existingPlanilla.pdtCode && existingPlanilla.pdtCode !== "Borrador") {
                     pdtCodeToSave = existingPlanilla.pdtCode;
+                } else if (existingPlanilla && typeof existingPlanilla.id === 'string' && existingPlanilla.id.startsWith('PDT-')) {
+                    pdtCodeToSave = existingPlanilla.id;
                 } else {
                     pdtCodeToSave = getNextPdtCode(dateDisplay);
                 }
             }
 
+            // FORMATO FIRESTORE: Guardar con el código PDT como ID de documento (ej: PDT-2311033) en lugar de un hash aleatorio
+            let docId = planillaId;
+            if (!docId || docId.startsWith("BORRADOR-")) {
+                if (statusVal !== "Borrador" && pdtCodeToSave && pdtCodeToSave !== "Borrador") {
+                    docId = pdtCodeToSave;
+                } else if (!docId) {
+                    docId = `BORRADOR-${Date.now()}`;
+                }
+            } else if (pdtCodeToSave && pdtCodeToSave !== "Borrador") {
+                docId = (typeof docId === "string" && docId.startsWith("PDT-")) ? docId : pdtCodeToSave;
+            }
+
+            const docRef = db.collection("planillas").doc(docId);
+
             const dataToSave = {
-                id: docRef.id,
+                id: docId,
                 orderId: window.pdigCurrentOrderId || (existingPlanilla ? existingPlanilla.orderId || "" : ""),
                 pdtCode: pdtCodeToSave,
                 date: dateDisplay,
