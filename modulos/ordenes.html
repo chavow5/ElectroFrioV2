@@ -1916,7 +1916,7 @@
             cont.innerHTML = '';
 
             if (!c) {
-                cont.innerHTML = `<span style="color: var(--text-muted); font-size: 13px;">Seleccione un cliente primero...</span>`;
+                cont.innerHTML = `<span style="color: var(--text-muted); font-size: 13px; padding: 4px;">Seleccione un cliente primero...</span>`;
                 if (hidden) hidden.value = '';
                 return;
             }
@@ -1926,20 +1926,65 @@
                 addrs.unshift(selectedAddr);
             }
 
+            const cleanSelected = (selectedAddr || '').trim().toLowerCase();
+
             addrs.forEach((addr, i) => {
-                const isChecked = selectedAddr ? (addr.trim().toLowerCase() === selectedAddr.trim().toLowerCase()) : (i === 0);
-                const div = document.createElement('div');
-                div.style.display = 'flex';
-                div.style.alignItems = 'center';
-                div.style.gap = '8px';
-                div.innerHTML = `
-                    <input type="radio" name="order-addr-choice" id="addr-order-opt-${i}" value="${addr}" ${isChecked ? 'checked' : ''} style="cursor: pointer;">
-                    <label for="addr-order-opt-${i}" style="font-size: 13px; cursor: pointer; color: var(--text-primary); margin:0;">${addr}</label>
-                `;
-                div.querySelector('input').onchange = (e) => { if (hidden) hidden.value = e.target.value; };
-                cont.appendChild(div);
+                const isChecked = cleanSelected ? (addr.trim().toLowerCase() === cleanSelected) : (i === 0);
                 if (isChecked && hidden) hidden.value = addr;
+
+                const card = document.createElement('label');
+                card.className = `address-choice-card ${isChecked ? 'selected' : ''}`;
+                card.htmlFor = `addr-order-opt-${i}`;
+                card.innerHTML = `
+                    <input type="radio" name="order-addr-choice" id="addr-order-opt-${i}" value="${addr}" ${isChecked ? 'checked' : ''} style="cursor: pointer;">
+                    <span style="font-size: 14px; flex-shrink: 0;">📍</span>
+                    <span style="font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; text-align: left; word-break: break-word;">${addr}</span>
+                `;
+
+                const radio = card.querySelector('input');
+                radio.onchange = (e) => {
+                    if (hidden) hidden.value = e.target.value;
+                    cont.querySelectorAll('.address-choice-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    const customInput = document.getElementById('order-address-custom-input');
+                    if (customInput) customInput.style.display = 'none';
+                };
+
+                cont.appendChild(card);
             });
+
+            // Opción para ingresar otro domicilio nuevo
+            const isCustomSelected = cleanSelected && !addrs.some(a => a.trim().toLowerCase() === cleanSelected);
+            if (isCustomSelected && hidden) hidden.value = selectedAddr;
+
+            const customWrap = document.createElement('div');
+            customWrap.style.cssText = 'display: flex; flex-direction: column; gap: 6px; margin-top: 4px;';
+            customWrap.innerHTML = `
+                <label class="address-choice-card ${isCustomSelected ? 'selected' : ''}" for="addr-order-opt-custom" style="cursor: pointer;">
+                    <input type="radio" name="order-addr-choice" id="addr-order-opt-custom" value="CUSTOM" ${isCustomSelected ? 'checked' : ''} style="cursor: pointer;">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--color-blue); flex: 1; text-align: left;">+ Otro Domicilio (escribir nuevo)</span>
+                </label>
+                <input type="text" id="order-address-custom-input" placeholder="Calle, Número, Localidad" value="${isCustomSelected ? selectedAddr : ''}" style="display: ${isCustomSelected ? 'block' : 'none'}; width: 100%; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 13px; outline: none; margin-top: 4px; box-sizing: border-box;">
+            `;
+
+            const customRadio = customWrap.querySelector('#addr-order-opt-custom');
+            const customInput = customWrap.querySelector('#order-address-custom-input');
+            const customCard = customWrap.querySelector('label');
+
+            customRadio.onchange = (e) => {
+                cont.querySelectorAll('.address-choice-card').forEach(c => c.classList.remove('selected'));
+                customCard.classList.add('selected');
+                customInput.style.display = 'block';
+                customInput.focus();
+                if (hidden) hidden.value = customInput.value.trim() || 'Sin especificar';
+            };
+
+            customInput.oninput = (e) => {
+                if (hidden) hidden.value = e.target.value.trim() || 'Sin especificar';
+            };
+
+            cont.appendChild(customWrap);
+
             if (!hidden.value && addrs.length > 0) hidden.value = addrs[0];
         }
 

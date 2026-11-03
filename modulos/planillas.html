@@ -2329,7 +2329,7 @@
             if (!cont) return;
             cont.innerHTML = "";
             if (!c) {
-                cont.innerHTML = `<span style="color: var(--text-muted); font-size: 13px;">Seleccione un cliente primero...</span>`;
+                cont.innerHTML = `<span style="color: var(--text-muted); font-size: 13px; padding: 4px;">Seleccione un cliente primero...</span>`;
                 if (hidden) hidden.value = "";
                 return;
             }
@@ -2339,16 +2339,26 @@
             addrs.forEach((addr, i) => {
                 const isChecked = cleanSelected ? (addr.trim().toLowerCase() === cleanSelected) : (i === 0);
                 if (isChecked && hidden) hidden.value = addr;
-                const div = document.createElement("div");
-                div.style.display = "flex";
-                div.style.alignItems = "center";
-                div.style.gap = "8px";
-                div.innerHTML = `
+
+                const card = document.createElement("label");
+                card.className = `address-choice-card ${isChecked ? "selected" : ""}`;
+                card.htmlFor = `addr-opt-${i}`;
+                card.innerHTML = `
                     <input type="radio" name="pdig-addr-opt" id="addr-opt-${i}" value="${addr}" ${isChecked ? "checked" : ""} style="cursor: pointer;">
-                    <label for="addr-opt-${i}" style="font-size: 13px; cursor: pointer; color: var(--text-primary);">${addr}</label>
+                    <span style="font-size: 14px; flex-shrink: 0;">📍</span>
+                    <span style="font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; text-align: left; word-break: break-word;">${addr}</span>
                 `;
-                div.querySelector("input").onchange = (e) => { if (hidden) hidden.value = e.target.value; };
-                cont.appendChild(div);
+
+                const radio = card.querySelector("input");
+                radio.onchange = (e) => {
+                    if (hidden) hidden.value = e.target.value;
+                    cont.querySelectorAll(".address-choice-card").forEach(c => c.classList.remove("selected"));
+                    card.classList.add("selected");
+                    const customInput = document.getElementById("pdig-address-custom-input");
+                    if (customInput) customInput.style.display = "none";
+                };
+
+                cont.appendChild(card);
             });
 
             const isCustomSelected = cleanSelected && !addrs.some(a => a.trim().toLowerCase() === cleanSelected);
@@ -2357,29 +2367,31 @@
             const divCustom = document.createElement("div");
             divCustom.style.cssText = "display: flex; flex-direction: column; gap: 6px; margin-top: 4px;";
             divCustom.innerHTML = `
-                <div style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                    <input type="radio" name="pdig-addr-opt" id="addr-opt-custom" value="CUSTOM" ${isCustomSelected ? "checked" : ""} style="cursor:pointer;">
-                    <label for="addr-opt-custom" style="margin: 0; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--color-blue);">+ Otro Domicilio (escribir nuevo)</label>
-                </div>
-                <input type="text" id="pdig-address-custom-input" placeholder="Calle, Número, Localidad" value="${isCustomSelected ? selectedAddr : ""}" style="display: ${isCustomSelected ? "block" : "none"}; width: 100%; padding: 6px 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 13px; outline: none; margin-top: 4px; box-sizing: border-box;">
+                <label class="address-choice-card ${isCustomSelected ? "selected" : ""}" for="addr-opt-custom" style="cursor: pointer;">
+                    <input type="radio" name="pdig-addr-opt" id="addr-opt-custom" value="CUSTOM" ${isCustomSelected ? "checked" : ""} style="cursor: pointer;">
+                    <span style="font-size: 13px; font-weight: 700; color: var(--color-blue); flex: 1; text-align: left;">+ Otro Domicilio (escribir nuevo)</span>
+                </label>
+                <input type="text" id="pdig-address-custom-input" placeholder="Calle, Número, Localidad" value="${isCustomSelected ? selectedAddr : ""}" style="display: ${isCustomSelected ? "block" : "none"}; width: 100%; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 13px; outline: none; margin-top: 4px; box-sizing: border-box;">
             `;
-            const radioCustom = divCustom.querySelector("input[type=\"radio\"]");
-            const customTextInput = divCustom.querySelector("input[type=\"text\"]");
-            radioCustom.addEventListener("change", () => {
+
+            const radioCustom = divCustom.querySelector("#addr-opt-custom");
+            const customTextInput = divCustom.querySelector("#pdig-address-custom-input");
+            const customCard = divCustom.querySelector("label");
+
+            radioCustom.onchange = (e) => {
+                cont.querySelectorAll(".address-choice-card").forEach(c => c.classList.remove("selected"));
+                customCard.classList.add("selected");
                 customTextInput.style.display = "block";
+                customTextInput.focus();
                 if (hidden) hidden.value = customTextInput.value.trim() || "Sin especificar";
-            });
-            customTextInput.addEventListener("input", () => {
-                if (hidden) hidden.value = customTextInput.value.trim() || "Sin especificar";
-            });
-            cont.querySelectorAll("input[name=\"pdig-addr-opt\"]").forEach(r => {
-                if (r.id !== "addr-opt-custom") {
-                    r.addEventListener("change", () => {
-                        customTextInput.style.display = "none";
-                    });
-                }
-            });
+            };
+
+            customTextInput.oninput = (e) => {
+                if (hidden) hidden.value = e.target.value.trim() || "Sin especificar";
+            };
+
             cont.appendChild(divCustom);
+
             if (!hidden.value && addrs.length > 0) hidden.value = addrs[0];
         }
 

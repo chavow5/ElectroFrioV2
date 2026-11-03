@@ -207,7 +207,7 @@
             font-weight: 600;
         }
 
-        .input-group input,
+        .input-group input:not([type="checkbox"]):not([type="radio"]),
         .input-group textarea,
         .input-group select {
             width: 100%;
@@ -2168,13 +2168,19 @@
             width: 100%;
         }
 
-        .collab-checkbox-list input[type="checkbox"] {
-            width: auto !important;
-            height: auto !important;
+        .collab-checkbox-list input[type="checkbox"],
+        .collab-checkbox-list input[type="radio"],
+        .input-group input[type="checkbox"],
+        .input-group input[type="radio"] {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            max-width: 16px !important;
             margin: 0 !important;
             padding: 0 !important;
-            cursor: pointer;
-            flex-shrink: 0;
+            cursor: pointer !important;
+            flex-shrink: 0 !important;
+            accent-color: var(--color-blue, #00b4d8) !important;
         }
 
         .collab-checkbox-list label {
@@ -2185,7 +2191,61 @@
             font-weight: normal !important;
             color: var(--text-primary) !important;
             cursor: pointer;
-            white-space: nowrap;
+            text-align: left !important;
+            word-break: break-word;
+        }
+
+        /* Tarjeta de selección de domicilio */
+        .address-choice-card {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 10px !important;
+            padding: 8px 12px !important;
+            border-radius: 8px !important;
+            background: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            text-align: left !important;
+            margin: 0 !important;
+            user-select: none;
+        }
+
+        .address-choice-card:hover {
+            background: rgba(0, 180, 216, 0.08) !important;
+            border-color: rgba(0, 180, 216, 0.35) !important;
+        }
+
+        .address-choice-card.selected {
+            background: rgba(0, 180, 216, 0.14) !important;
+            border-color: var(--color-blue, #00b4d8) !important;
+            box-shadow: 0 0 0 1px rgba(0, 180, 216, 0.25);
+        }
+
+        .address-choice-card input[type="radio"] {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            max-width: 16px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            cursor: pointer !important;
+            flex-shrink: 0 !important;
+            accent-color: var(--color-blue, #00b4d8) !important;
+        }
+
+        .address-choice-card label,
+        .address-choice-card span {
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 13px !important;
+            color: var(--text-primary, #ffffff) !important;
+            cursor: pointer !important;
+            text-align: left !important;
         }
 
         .btn-buscar {
