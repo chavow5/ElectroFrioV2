@@ -412,6 +412,270 @@
             color: #ef4444;
         }
 
+        /* ==============================================================
+           ESTILOS VISUALES: COLABORADORES EN COLORES Y ENTRADA/SALIDA SEPARADAS
+           ============================================================== */
+        /* Pastilla / Badge de Colaborador con Color Personalizado */
+        .collab-name-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border-width: 1px;
+            border-style: solid;
+            max-width: 100%;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .collab-name-pill:hover {
+            transform: translateY(-1px);
+        }
+                .collab-name-text {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+        .collab-name-user {
+            font-size: 11px;
+            color: var(--text-muted, #94a3b8);
+            font-weight: 400;
+        }
+        body.light-mode .collab-name-pill {
+            background: rgba(0, 0, 0, 0.04) !important;
+        }
+
+        /* Columnas y Celdas de Entrada (Verde) y Salida (Rojo) */
+        .th-col-entrada {
+            color: #10b981 !important;
+            background: rgba(16, 185, 129, 0.08) !important;
+            border-bottom: 2px solid #10b981 !important;
+            min-width: 140px;
+            text-align: left;
+        }
+        .th-badge-entrada {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            color: #34d399;
+            font-size: 12px;
+        }
+
+        .th-col-salida {
+            color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.08) !important;
+            border-bottom: 2px solid #ef4444 !important;
+            min-width: 140px;
+            text-align: left;
+        }
+        .th-badge-salida {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            color: #f87171;
+            font-size: 12px;
+        }
+
+        .cell-entrada {
+            background: rgba(16, 185, 129, 0.035);
+            border-left: 2px solid rgba(16, 185, 129, 0.35);
+            vertical-align: middle;
+        }
+        .cell-salida {
+            background: rgba(239, 68, 68, 0.035);
+            border-left: 2px solid rgba(239, 68, 68, 0.35);
+            vertical-align: middle;
+        }
+        .cell-empty {
+            opacity: 0.45;
+        }
+        .fichaje-dash {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
+            padding-left: 8px;
+        }
+
+        /* Cajita de Fichaje Entrada / Salida */
+        .fichaje-punch-box {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 6px 11px;
+            border-radius: 8px;
+            min-width: 120px;
+            transition: all 0.2s ease;
+        }
+        .fichaje-punch-box.in {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #34d399;
+        }
+        .fichaje-punch-box.out {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #f87171;
+        }
+        .punch-time-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .dot-in {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+            flex-shrink: 0;
+        }
+        .dot-out {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+            flex-shrink: 0;
+        }
+        .punch-time-val {
+            font-size: 13.5px;
+            font-weight: 800;
+            font-family: monospace, 'Courier New', Courier;
+            letter-spacing: 0.3px;
+        }
+        .punch-turn-tag {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            margin-left: 2px;
+        }
+        .punch-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+        }
+        .punch-gps-tag {
+            font-size: 10px;
+            color: #38bdf8;
+            font-weight: 600;
+        }
+        .punch-manual-tag {
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .btn-quick-edit-icon {
+            background: transparent;
+            border: none;
+            color: inherit;
+            opacity: 0.65;
+            cursor: pointer;
+            padding: 1px 4px;
+            font-size: 11px;
+            border-radius: 4px;
+            transition: opacity 0.2s, background 0.2s;
+            margin-left: 4px;
+        }
+        .btn-quick-edit-icon:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Botón de Fichaje Faltante Rápido */
+        .btn-missing-punch {
+            background: transparent;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 9px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+        }
+        .btn-missing-punch.in {
+            border: 1px dashed rgba(245, 158, 11, 0.5);
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
+        }
+        .btn-missing-punch.in:hover {
+            background: rgba(245, 158, 11, 0.22);
+            border-color: #fbbf24;
+        }
+        .btn-missing-punch.out {
+            border: 1px dashed rgba(245, 158, 11, 0.6);
+            background: rgba(245, 158, 11, 0.14);
+            color: #fbbf24;
+            font-weight: 600;
+        }
+        .btn-missing-punch.out:hover {
+            background: rgba(245, 158, 11, 0.28);
+            border-color: #fbbf24;
+            color: #fef08a;
+        }
+
+        .badge-missing-simple {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .badge-missing-simple.in {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+        .badge-missing-simple.out {
+            background: rgba(245, 158, 11, 0.16);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        /* Badge de Duración de Turno */
+        
+        /* Toggle de Vistas (Por Turnos vs Fila Individual) */
+        .fichajes-view-toggle {
+            display: inline-flex;
+            background: rgba(10, 17, 28, 0.65);
+            border: 1px solid var(--border-color, #1e3656);
+            border-radius: 8px;
+            padding: 3px;
+            gap: 3px;
+        }
+        .btn-view-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary, #94a3b8);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-view-toggle:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .btn-view-toggle.active {
+            background: #0284c7;
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+        }
+
         /* Modal Overlay */
         .modal-overlay {
             position: fixed;
@@ -890,9 +1154,9 @@
                     <table class="custom-table" style="width: 100%;">
                         <thead>
                             <tr>
-                                <th>Colaborador</th>
-                                <th>Entrada</th>
-                                <th>Salida</th>
+                                <th style="min-width: 175px;">Colaborador</th>
+                                <th class="th-col-entrada"><span class="th-badge-entrada">🟢 ENTRADA</span></th>
+                                <th class="th-col-salida"><span class="th-badge-salida">🔴 SALIDA</span></th>
                                 <th>Estado del Día</th>
                                 <th style="text-align: right;">Acción Rápida</th>
                             </tr>
@@ -945,9 +1209,20 @@
     <!-- 5. TABLA GENERAL / HISTORIAL DE FICHAJES -->
     <div class="content-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
-            <h3 class="card-title" id="fichajesTitle" style="margin: 0; font-size: 18px; font-family: 'Outfit', sans-serif;">
-                Registros de Asistencia
-            </h3>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <h3 class="card-title" id="fichajesTitle" style="margin: 0; font-size: 18px; font-family: 'Outfit', sans-serif;">
+                    Registros de Asistencia
+                </h3>
+                <!-- Selector de Vista: Por Turnos vs Fila Individual -->
+                <div class="fichajes-view-toggle">
+                    <button type="button" class="btn-view-toggle active" id="btnViewTurnos" onclick="setFichajesTableViewMode('turnos')" title="Mostrar Entrada y Salida agrupadas en columnas verdes y rojas">
+                        👥 Por Turnos
+                    </button>
+                    <button type="button" class="btn-view-toggle" id="btnViewIndividual" onclick="setFichajesTableViewMode('individual')" title="Mostrar cada fichaje en una fila individual">
+                        📋 Fila Individual
+                    </button>
+                </div>
+            </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <button type="button" class="btn-nuevo-fichaje-head role-admin-only" onclick="openModalNuevoFichajeManual()" style="font-size: 12px; padding: 6px 14px; background: #0284c7; color: #fff;" title="Cargar entrada o salida olvidada por un técnico">
                     + Cargar Fichaje Olvidado
@@ -975,12 +1250,22 @@
             <table class="custom-table" style="width: 100%;">
                 <thead>
                     <tr>
-                        <th>Colaborador</th>
-                        <th>Fecha</th>
-                        <th>Hora</th>
-                        <th>Tipo</th>
-                        <th>GPS / Ubicación</th>
-                        <th class="role-admin-only" style="text-align: center;">Acciones</th>
+                        <th style="min-width: 175px;">Colaborador</th>
+                        <th style="min-width: 110px;">Fecha</th>
+                        <th class="th-col-entrada">
+                            <span class="th-badge-entrada">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                                🟢 ENTRADA
+                            </span>
+                        </th>
+                        <th class="th-col-salida">
+                            <span class="th-badge-salida">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="14 17 9 12 14 7"></polyline><line x1="9" y1="12" x2="21" y2="12"></line></svg>
+                                🔴 SALIDA
+                            </span>
+                        </th>
+                        <th style="min-width: 140px;">GPS / Ubicación</th>
+                        <th class="role-admin-only" style="text-align: center; min-width: 110px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="fichajesTableBody">
@@ -990,7 +1275,75 @@
         </div>
     </div>
 
-    <!-- MODAL NUEVO / EDITAR FICHAJE MANUAL -->
+    <!-- MODAL EDITAR ENTRADA Y SALIDA (TURNO) -->
+    <div id="modalEditarTurno" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Editar Entrada y Salida</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeModalEditarTurno()">&times;</button>
+            </div>
+            
+            <form id="formEditarTurno" onsubmit="handleFormEditarTurnoSubmit(event)">
+                <input type="hidden" id="editTurnoInId" value="">
+                <input type="hidden" id="editTurnoOutId" value="">
+                <input type="hidden" id="editTurnoCollabName" value="">
+                
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 5px;">Colaborador</label>
+                        <input type="text" id="editTurnoCollabDisplay" disabled style="width: 100%; padding: 9px 12px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 13px; font-weight: 700;">
+                    </div>
+
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 5px;">Fecha</label>
+                        <input type="date" id="editTurnoDate" required style="width: 100%; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 13px; outline: none;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px;">
+                            <label style="font-size: 12px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 5px; margin-bottom: 6px;">
+                                🟢 Hora de Entrada
+                            </label>
+                            <input type="time" id="editTurnoTimeIn" style="width: 100%; padding: 9px 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 14px; font-weight: 700; outline: none;">
+                            <small style="color: var(--text-muted); font-size: 10px; display: block; margin-top: 4px;">Dejar vacío si no hubo entrada</small>
+                        </div>
+
+                        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 12px;">
+                            <label style="font-size: 12px; font-weight: 700; color: #f87171; display: flex; align-items: center; gap: 5px; margin-bottom: 6px;">
+                                🔴 Hora de Salida
+                            </label>
+                            <input type="time" id="editTurnoTimeOut" style="width: 100%; padding: 9px 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 14px; font-weight: 700; outline: none;">
+                            <small style="color: var(--text-muted); font-size: 10px; display: block; margin-top: 4px;">Dejar vacío si está en turno</small>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 5px;">
+                            Motivo / Observación
+                        </label>
+                        <input type="text" id="editTurnoObservacion" placeholder="Ej: Regularización de horario, olvido, etc." style="width: 100%; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; font-size: 13px; outline: none;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 22px;">
+                    <button type="button" onclick="closeModalEditarTurno()" style="flex: 1; padding: 11px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Cancelar
+                    </button>
+                    <button type="submit" style="flex: 2; padding: 11px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+        <!-- MODAL NUEVO / EDITAR FICHAJE MANUAL -->
     <div id="modalFichaje" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -1121,12 +1474,105 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="../js/modo-seguro.js"></script>
-
+    
     <!-- ==============================================================
          LÓGICA JAVASCRIPT DEL MÓDULO FICHAJES
          ============================================================== -->
     <script>
+        // ==============================================================
+        // PALETA VISUAL PARA COLABORADORES Y VISTAS DE ENTRADA / SALIDA
+        // ==============================================================
+        const COLLAB_COLORS = [
+            { text: '#38bdf8', bg: 'rgba(56, 189, 248, 0.14)', border: 'rgba(56, 189, 248, 0.45)' }, // Cyan
+            { text: '#34d399', bg: 'rgba(52, 211, 153, 0.14)', border: 'rgba(52, 211, 153, 0.45)' }, // Esmeralda
+            { text: '#fbbf24', bg: 'rgba(251, 191, 36, 0.14)', border: 'rgba(251, 191, 36, 0.45)' }, // Ámbar / Oro
+            { text: '#c084fc', bg: 'rgba(192, 132, 252, 0.14)', border: 'rgba(192, 132, 252, 0.45)' }, // Púrpura
+            { text: '#f472b6', bg: 'rgba(244, 114, 182, 0.14)', border: 'rgba(244, 114, 182, 0.45)' }, // Rosa
+            { text: '#fb923c', bg: 'rgba(251, 146, 60, 0.14)', border: 'rgba(251, 146, 60, 0.45)' }, // Naranja
+            { text: '#2dd4bf', bg: 'rgba(45, 212, 191, 0.14)', border: 'rgba(45, 212, 191, 0.45)' }, // Turquesa
+            { text: '#818cf8', bg: 'rgba(129, 140, 248, 0.14)', border: 'rgba(129, 140, 248, 0.45)' }, // Índigo
+            { text: '#a3e635', bg: 'rgba(163, 230, 53, 0.14)', border: 'rgba(163, 230, 53, 0.45)' }, // Lima
+            { text: '#e879f9', bg: 'rgba(232, 121, 249, 0.14)', border: 'rgba(232, 121, 249, 0.45)' }, // Fucsia
+            { text: '#67e8f9', bg: 'rgba(103, 232, 249, 0.14)', border: 'rgba(103, 232, 249, 0.45)' }, // Celeste
+            { text: '#fca5a5', bg: 'rgba(252, 165, 165, 0.14)', border: 'rgba(252, 165, 165, 0.45)' }  // Coral suave
+        ];
+
+        function getCollabColor(name) {
+            if (!name) return COLLAB_COLORS[0];
+            const clean = String(name).trim().toLowerCase();
+            let hash = 0;
+            for (let i = 0; i < clean.length; i++) {
+                hash = (hash << 5) - hash + clean.charCodeAt(i);
+                hash |= 0;
+            }
+            const idx = Math.abs(hash) % COLLAB_COLORS.length;
+            return COLLAB_COLORS[idx];
+        }
+
+        function renderCollabNameBadge(name, username) {
+            const safeName = name || 'Sin Nombre';
+            const color = getCollabColor(safeName);
+            return `
+                <div style="display: inline-flex; align-items: center; gap: 7px;">
+                    <span style="width: 8px; height: 8px; border-radius: 50%; background: ${color.text}; display: inline-block; flex-shrink: 0; box-shadow: 0 0 6px ${color.border};"></span>
+                    <strong style="color: ${color.text}; font-size: 13.5px; font-weight: 700; letter-spacing: 0.2px;">${safeName}</strong>
+                    ${username ? `<span style="color: var(--text-muted, #94a3b8); font-size: 11px;">(@${username})</span>` : ''}
+                </div>
+            `;
+        }
+
+        function formatShiftDuration(startTs, endTs) {
+            if (!startTs || !endTs) return '';
+            try {
+                const d1 = new Date(startTs).getTime();
+                const d2 = new Date(endTs).getTime();
+                const diffMs = d2 - d1;
+                if (isNaN(diffMs) || diffMs <= 0) return '';
+                const totalMinutes = Math.floor(diffMs / 60000);
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+                return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+            } catch(e) {
+                return '';
+            }
+        }
+
+        let fichajesTableViewMode = localStorage.getItem('electrofrio_fichajes_table_view') || 'turnos';
+
+        window.setFichajesTableViewMode = function(mode) {
+            fichajesTableViewMode = mode;
+            localStorage.setItem('electrofrio_fichajes_table_view', mode);
+            const btnTurnos = document.getElementById('btnViewTurnos');
+            const btnIndiv = document.getElementById('btnViewIndividual');
+            if (btnTurnos) btnTurnos.classList.toggle('active', mode === 'turnos');
+            if (btnIndiv) btnIndiv.classList.toggle('active', mode === 'individual');
+            renderFichajesTable();
+        };
+
+        window.eliminarTurno = async function(idIn, idOut) {
+            if (!isAdminRole()) {
+                showToast("Acceso restringido: solo Administradores pueden eliminar fichajes.", "warning");
+                return;
+            }
+            const count = (idIn ? 1 : 0) + (idOut ? 1 : 0);
+            if (!confirm(`¿Estás seguro de que deseas eliminar este turno (${count} registro${count > 1 ? 's' : ''})?`)) return;
+            try {
+                if (idIn) await db.collection('fichajes').doc(idIn).delete();
+                if (idOut) await db.collection('fichajes').doc(idOut).delete();
+                fichajes = fichajes.filter(f => f.id !== idIn && f.id !== idOut);
+                localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+                showToast("Turno eliminado correctamente", "success");
+                renderAll();
+                updateCollabFichajeUI();
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'FICHAJE_UPDATED' }, '*');
+                }
+            } catch(err) {
+                console.error(err);
+                showToast("Error al eliminar turno", "error");
+            }
+        };
+
         // CONFIGURACIÓN DE FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyAHtMvkoHg2-OQaLOZ1Jvlsp6Bi3_-LP-s",
@@ -2048,7 +2494,7 @@
                         countMissingOut++;
                         const turnLbl = entradas.length > 1 ? ` (Falta ${entradas.length}ª Salida)` : ' (Falta Salida)';
                         statusBadge = `<span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); padding: 4px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 En Turno${turnLbl}</span>`;
-                        quickActionHtml = `<button type="button" class="btn-nuevo-fichaje-head" style="background:#ef4444; color:#fff; font-size: 11px; padding: 5px 10px;" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${selectedISO}')">+ Salida</button>`;
+                        quickActionHtml = `<button type="button" class="btn-nuevo-fichaje-head" style="background: rgba(245, 158, 11, 0.22); border: 1px solid #f59e0b; color: #fbbf24; font-size: 11px; padding: 5px 10px; font-weight: 700;" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${selectedISO}')" title="Cargar salida olvidada">⏳ + Cargar Salida</button>`;
                     } else {
                         category = 'complete';
                         countComplete++;
@@ -2142,18 +2588,10 @@
 
                 tr.innerHTML = `
                     <td data-label="Colaborador">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="width: 32px; height: 32px; border-radius: 50%; background: #00b4d8; color: #000; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 12px;">
-                                ${initials}
-                            </div>
-                            <div>
-                                <strong style="color: var(--text-primary); font-size: 13px;">${item.collab.name}</strong>
-                                ${item.collab.username ? `<div style="color: var(--text-muted); font-size: 11px;">@${item.collab.username}</div>` : ''}
-                            </div>
-                        </div>
+                        ${renderCollabNameBadge(item.collab.name, item.collab.username)}
                     </td>
-                    <td data-label="Entrada">${entText}</td>
-                    <td data-label="Salida">${salText}</td>
+                    <td data-label="Entrada" class="cell-entrada">${entText}</td>
+                    <td data-label="Salida" class="cell-salida">${salText}</td>
                     <td data-label="Estado del Día">${item.statusBadge}</td>
                     <td data-label="Acción Rápida" style="text-align: right;">${item.quickActionHtml}</td>
                 `;
@@ -2174,6 +2612,12 @@
             // Asegurar deduplicación inmediata en memoria para evitar registros duplicados en pantalla
             fichajes = deduplicateFichajesList(fichajes);
             const isAdmin = isAdminRole();
+
+            // Sincronizar estado visual de los botones de vista
+            const btnTurnos = document.getElementById('btnViewTurnos');
+            const btnIndiv = document.getElementById('btnViewIndividual');
+            if (btnTurnos) btnTurnos.classList.toggle('active', fichajesTableViewMode === 'turnos');
+            if (btnIndiv) btnIndiv.classList.toggle('active', fichajesTableViewMode === 'individual');
 
             let list = [];
             if (!isAdmin) {
@@ -2237,7 +2681,7 @@
             const sortedDays = Array.from(dayGroupsMap.values()).sort((a, b) => b.iso.localeCompare(a.iso));
             const tableFragment = document.createDocumentFragment();
 
-            sortedDays.forEach((dayGroup, dayIndex) => {
+            sortedDays.forEach((dayGroup) => {
                 // Analizar colaboradores del día para calcular turnos múltiples y detectar faltantes
                 const collabMap = new Map();
                 dayGroup.records.forEach(r => {
@@ -2303,93 +2747,243 @@
                 `;
                 tableFragment.appendChild(trDay);
 
-                // Ordenar los registros del día agrupando por técnico y luego cronológicamente por hora
-                dayGroup.records.sort((a, b) => {
-                    const nameA = (a.name || '').toLowerCase();
-                    const nameB = (b.name || '').toLowerCase();
-                    if (nameA !== nameB) return nameA.localeCompare(nameB);
-                    return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
-                });
+                // ==============================================================
+                // RENDERIZADO SEGÚN MODO: POR TURNOS VS INDIVIDUAL
+                // ==============================================================
+                if (fichajesTableViewMode === 'turnos') {
+                    // MODO POR TURNOS: ENTRADA Y SALIDA APAREADAS CON CONTROLES DIRECTOS DE EDICIÓN
+                    const sortedCollabKeys = Array.from(collabMap.keys()).sort();
 
-                let lastCollabName = '';
-                dayGroup.records.forEach((f, recIdx) => {
-                    const tr = document.createElement('tr');
-                    const currentCollab = (f.name || '').trim().toLowerCase();
-                    const isNewCollab = (lastCollabName !== '' && lastCollabName !== currentCollab);
-                    lastCollabName = currentCollab;
+                    sortedCollabKeys.forEach(collabKey => {
+                        const userRecords = collabMap.get(collabKey);
+                        userRecords.sort((a, b) => new Date(a.timestamp || 0) - new Date(b.timestamp || 0));
 
-                    if (isNewCollab) {
-                        tr.style.borderTop = '1px dashed rgba(255, 255, 255, 0.12)';
-                    }
+                        const shifts = [];
+                        let curShift = null;
 
-                    // Badge de Tipo con turno (si hay más de 1 turno en el día) y acción rápida solo para Administrador
-                    let typeBadge = '';
-                    const turnSuffix = (f._totalInDay > 1 || f._turnNumber > 1) ? ` (${f._turnNumber}º Turno)` : '';
-                    const safeName = (f.name || '').replace(/'/g, "\\'");
-
-                    if (f.type === 'Entrada') {
-                        let missingBadge = '';
-                        if (f._isMissingExit) {
-                            missingBadge = isAdmin ? `
-                                <button type="button" class="fichaje-subturn-badge subturn-missing-out" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${dayGroup.iso}')" title="Clic para cargar la salida olvidada de ${safeName}" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(245, 158, 11, 0.5);">
-                                    ⏳ Falta Salida <strong style="text-decoration: underline;">+ Cargar</strong>
-                                </button>
-                            ` : `<span class="fichaje-subturn-badge subturn-missing-out">⏳ Falta Salida</span>`;
+                        userRecords.forEach(rec => {
+                            if (rec.type === 'Entrada') {
+                                if (curShift) {
+                                    shifts.push(curShift);
+                                }
+                                curShift = {
+                                    collabName: rec.name,
+                                    collabUsername: rec.username,
+                                    observacion: rec.observacion,
+                                    entrada: rec,
+                                    salida: null
+                                };
+                            } else {
+                                if (curShift) {
+                                    curShift.salida = rec;
+                                    if (!curShift.observacion && rec.observacion) curShift.observacion = rec.observacion;
+                                    shifts.push(curShift);
+                                    curShift = null;
+                                } else {
+                                    shifts.push({
+                                        collabName: rec.name,
+                                        collabUsername: rec.username,
+                                        observacion: rec.observacion,
+                                        entrada: null,
+                                        salida: rec
+                                    });
+                                }
+                            }
+                        });
+                        if (curShift) {
+                            shifts.push(curShift);
                         }
-                        typeBadge = `
-                            <span class="badge-entrada"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg> Entrada${turnSuffix}</span>
-                            ${missingBadge}
-                        `;
-                    } else {
-                        let missingBadge = '';
-                        if (f._isMissingEntry) {
-                            missingBadge = isAdmin ? `
-                                <button type="button" class="fichaje-subturn-badge subturn-missing-in" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${dayGroup.iso}')" title="Clic para cargar la entrada olvidada de ${safeName}" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(239, 68, 68, 0.5);">
-                                    ⚠️ Falta Entrada <strong style="text-decoration: underline;">+ Cargar</strong>
-                                </button>
-                            ` : `<span class="fichaje-subturn-badge subturn-missing-in">⚠️ Falta Entrada</span>`;
+
+                        shifts.forEach((shift, sIdx) => {
+                            const tr = document.createElement('tr');
+                            const collabName = shift.collabName || 'Sin Nombre';
+                            const safeName = collabName.replace(/'/g, "\\'");
+                            const turnNum = sIdx + 1;
+                            const turnSuffix = shifts.length > 1 ? ` (${turnNum}º Turno)` : '';
+
+                            const inId = shift.entrada ? `'${shift.entrada.id}'` : 'null';
+                            const outId = shift.salida ? `'${shift.salida.id}'` : 'null';
+
+                            // 1. CELDA ENTRADA (Verde) con botón de edición directa
+                            let entCellHtml = '';
+                            if (shift.entrada) {
+                                entCellHtml = `
+                                    <div class="fichaje-punch-box in" style="display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                        <div class="punch-time-row" style="margin: 0;">
+                                            <span class="dot-in"></span>
+                                            <span class="punch-time-val">${shift.entrada.time || '--:--'}</span>
+                                            ${turnSuffix ? `<span class="punch-turn-tag">${turnSuffix}</span>` : ''}
+                                        </div>
+                                        ${isAdmin ? `<button type="button" class="btn-quick-edit-icon" onclick="openModalEditarFichaje('${shift.entrada.id}')" title="Editar hora de entrada">✏️</button>` : ''}
+                                    </div>
+                                `;
+                            } else {
+                                entCellHtml = isAdmin ? `
+                                    <button type="button" class="btn-missing-punch in" onclick="openModalFichajeForCollab('${safeName}', 'Entrada', '${dayGroup.iso}')" title="Cargar entrada olvidada para ${safeName}">
+                                        ⚠️ Falta Entrada <strong>+ Cargar</strong>
+                                    </button>
+                                ` : `<span class="badge-missing-simple in">⚠️ Falta Entrada</span>`;
+                            }
+
+                            // 2. CELDA SALIDA (Roja) con botón de edición directa
+                            let salCellHtml = '';
+                            if (shift.salida) {
+                                salCellHtml = `
+                                    <div class="fichaje-punch-box out" style="display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                        <div class="punch-time-row" style="margin: 0;">
+                                            <span class="dot-out"></span>
+                                            <span class="punch-time-val">${shift.salida.time || '--:--'}</span>
+                                            ${turnSuffix ? `<span class="punch-turn-tag">${turnSuffix}</span>` : ''}
+                                        </div>
+                                        ${isAdmin ? `<button type="button" class="btn-quick-edit-icon" onclick="openModalEditarFichaje('${shift.salida.id}')" title="Editar hora de salida">✏️</button>` : ''}
+                                    </div>
+                                `;
+                            } else {
+                                salCellHtml = isAdmin ? `
+                                    <button type="button" class="btn-missing-punch out" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${dayGroup.iso}')" title="Cargar salida para ${safeName}">
+                                        ⏳ En Turno <strong>+ Cargar Salida</strong>
+                                    </button>
+                                ` : `<span class="badge-missing-simple out">⏳ En Turno (Pendiente)</span>`;
+                            }
+
+                            // 3. CELDA GPS / UBICACIÓN (Simple y limpia, sin botones de duración ni In/Out)
+                            const isGpsIn = shift.entrada && shift.entrada.gps && shift.entrada.gps.verified;
+                            const isGpsOut = shift.salida && shift.salida.gps && shift.salida.gps.verified;
+                            let gpsCellHtml = '';
+                            if (isGpsIn || isGpsOut) {
+                                gpsCellHtml = `<span class="badge-gps-verified">📍 GPS Verificado</span>`;
+                            } else {
+                                gpsCellHtml = `<span class="badge-gps-manual">📌 Manual</span>`;
+                            }
+
+                            // 4. ACCIONES ADMIN (Editar Turno Completo: Entrada y Salida)
+                            let actionsHtml = '';
+                            if (isAdmin) {
+                                const primaryId = (shift.entrada ? shift.entrada.id : (shift.salida ? shift.salida.id : null));
+                                actionsHtml = `
+                                    <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                                        ${primaryId ? `<button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${primaryId}')" title="Ver Detalle">👁️</button>` : ''}
+                                        <button type="button" class="btn-table-action" onclick="openModalEditarTurno(${inId}, ${outId})" title="Editar Entrada y Salida" style="border-color: var(--color-blue); color: var(--color-blue);">✏️</button>
+                                        <button type="button" class="btn-table-action delete" onclick="eliminarTurno(${inId}, ${outId})" title="Eliminar Registro(s)">🗑️</button>
+                                    </div>
+                                `;
+                            }
+
+                            tr.innerHTML = `
+                                <td data-label="Colaborador">
+                                    ${renderCollabNameBadge(collabName, shift.collabUsername)}
+                                    ${shift.observacion ? `<div style="font-size: 11px; color: #fbbf24; margin-top: 3px;" title="${shift.observacion}">📝 ${shift.observacion}</div>` : ''}
+                                </td>
+                                <td data-label="Fecha">
+                                    <div style="font-weight: 600; color: var(--text-primary);">${dayGroup.dateInfo.ar}</div>
+                                    <div style="font-size: 11px; color: #38bdf8; font-weight: 700; text-transform: capitalize; margin-top: 2px;">
+                                        ${dayGroup.dateInfo.dayName}
+                                    </div>
+                                </td>
+                                <td data-label="Entrada" class="cell-entrada">${entCellHtml}</td>
+                                <td data-label="Salida" class="cell-salida">${salCellHtml}</td>
+                                <td data-label="GPS / Ubicación">${gpsCellHtml}</td>
+                                <td data-label="Acciones" class="role-admin-only" style="text-align: center;">${actionsHtml}</td>
+                            `;
+                            tableFragment.appendChild(tr);
+                        });
+                    });
+
+                } else {
+                    // MODO INDIVIDUAL
+                    dayGroup.records.sort((a, b) => {
+                        const nameA = (a.name || '').toLowerCase();
+                        const nameB = (b.name || '').toLowerCase();
+                        if (nameA !== nameB) return nameA.localeCompare(nameB);
+                        return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
+                    });
+
+                    let lastCollabName = '';
+                    dayGroup.records.forEach((f) => {
+                        const tr = document.createElement('tr');
+                        const currentCollab = (f.name || '').trim().toLowerCase();
+                        const isNewCollab = (lastCollabName !== '' && lastCollabName !== currentCollab);
+                        lastCollabName = currentCollab;
+
+                        if (isNewCollab) {
+                            tr.style.borderTop = '1px dashed rgba(255, 255, 255, 0.12)';
                         }
-                        typeBadge = `
-                            <span class="badge-salida"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="14 17 9 12 14 7"></polyline><line x1="9" y1="12" x2="21" y2="12"></line></svg> Salida${turnSuffix}</span>
-                            ${missingBadge}
-                        `;
-                    }
 
-                    let gpsBadge = `<span class="badge-gps-manual">📌 Manual</span>`;
-                    if (f.gps && f.gps.verified && f.gps.lat && f.gps.lng) {
-                        const mapsUrl = `https://www.google.com/maps?q=${f.gps.lat},${f.gps.lng}`;
-                        gpsBadge = `<a href="${mapsUrl}" target="_blank" class="badge-gps-verified" title="Ver en Google Maps (${f.gps.lat.toFixed(5)}, ${f.gps.lng.toFixed(5)})">📍 GPS Verificado ↗</a>`;
-                    }
+                        const turnSuffix = (f._totalInDay > 1 || f._turnNumber > 1) ? ` (${f._turnNumber}º Turno)` : '';
+                        const safeName = (f.name || '').replace(/'/g, "\\'");
+                        const isGps = f.gps && f.gps.verified && f.gps.lat && f.gps.lng;
 
-                    const actionsHtml = isAdmin ? `
-                        <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
-                            <button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${f.id}')" title="Ver Detalle del Fichaje">👁️</button>
-                            <button type="button" class="btn-table-action" onclick="openModalEditarFichaje('${f.id}')" title="Editar Fichaje">✏️</button>
-                            <button type="button" class="btn-table-action" onclick="openModalFichajeForCollab('${safeName}', '${f.type === 'Entrada' ? 'Salida' : 'Entrada'}', '${dayGroup.iso}')" title="Cargar fichaje complementario para ${safeName}">+➕</button>
-                            <button type="button" class="btn-table-action delete" onclick="eliminarFichaje('${f.id}')" title="Eliminar Fichaje">🗑️</button>
-                        </div>
-                    ` : '';
+                        let entCellHtml = '';
+                        let salCellHtml = '';
 
-                    tr.innerHTML = `
-                        <td data-label="Colaborador">
-                            <strong style="color: var(--text-primary); font-size: 13px;">${f.name || 'Sin Nombre'}</strong>
-                            ${f.username ? `<span style="color: var(--text-muted); font-size: 11px; margin-left: 4px;">(@${f.username})</span>` : ''}
-                            ${f.observacion ? `<div style="font-size: 11px; color: #fbbf24; margin-top: 2px;" title="${f.observacion}">📝 ${f.observacion}</div>` : ''}
-                        </td>
-                        <td data-label="Fecha">
-                            <div style="font-weight: 600; color: var(--text-primary);">${dayGroup.dateInfo.ar}</div>
-                            <div style="font-size: 11px; color: #38bdf8; font-weight: 700; text-transform: capitalize; margin-top: 2px;">
-                                ${dayGroup.dateInfo.dayName}
+                        if (f.type === 'Entrada') {
+                            entCellHtml = `
+                                <div class="fichaje-punch-box in" style="display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <div class="punch-time-row" style="margin: 0;">
+                                        <span class="dot-in"></span>
+                                        <span class="punch-time-val">${f.time || '--:--'}</span>
+                                        ${turnSuffix ? `<span class="punch-turn-tag">${turnSuffix}</span>` : ''}
+                                    </div>
+                                    ${isAdmin ? `<button type="button" class="btn-quick-edit-icon" onclick="openModalEditarFichaje('${f.id}')" title="Editar Entrada">✏️</button>` : ''}
+                                </div>
+                            `;
+                            if (f._isMissingExit) {
+                                salCellHtml = isAdmin ? `
+                                    <button type="button" class="btn-missing-punch out" onclick="openModalFichajeForCollab('${safeName}', 'Salida', '${dayGroup.iso}')" title="Cargar salida para ${safeName}">
+                                        ⏳ En Turno <strong>+ Cargar Salida</strong>
+                                    </button>
+                                ` : `<span class="badge-missing-simple out">⏳ En Turno</span>`;
+                            } else {
+                                salCellHtml = `<span class="fichaje-dash">—</span>`;
+                            }
+                        } else {
+                            entCellHtml = `<span class="fichaje-dash">—</span>`;
+                            salCellHtml = `
+                                <div class="fichaje-punch-box out" style="display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <div class="punch-time-row" style="margin: 0;">
+                                        <span class="dot-out"></span>
+                                        <span class="punch-time-val">${f.time || '--:--'}</span>
+                                        ${turnSuffix ? `<span class="punch-turn-tag">${turnSuffix}</span>` : ''}
+                                    </div>
+                                    ${isAdmin ? `<button type="button" class="btn-quick-edit-icon" onclick="openModalEditarFichaje('${f.id}')" title="Editar Salida">✏️</button>` : ''}
+                                </div>
+                            `;
+                        }
+
+                        let gpsBadge = isGps 
+                            ? `<span class="badge-gps-verified">📍 GPS Verificado</span>` 
+                            : `<span class="badge-gps-manual">📌 Manual</span>`;
+
+                        const actionsHtml = isAdmin ? `
+                            <div style="display: flex; gap: 6px; justify-content: center; align-items: center;">
+                                <button type="button" class="btn-table-action" onclick="openModalVerDetalleFichaje('${f.id}')" title="Ver Detalle del Fichaje">👁️</button>
+                                <button type="button" class="btn-table-action" onclick="openModalEditarFichaje('${f.id}')" title="Editar Fichaje">✏️</button>
+                                <button type="button" class="btn-table-action" onclick="openModalFichajeForCollab('${safeName}', '${f.type === 'Entrada' ? 'Salida' : 'Entrada'}', '${dayGroup.iso}')" title="Cargar fichaje complementario">+➕</button>
+                                <button type="button" class="btn-table-action delete" onclick="eliminarFichaje('${f.id}')" title="Eliminar Fichaje">🗑️</button>
                             </div>
-                        </td>
-                        <td data-label="Hora" style="font-weight: 600;">${f.time || '--:--'}</td>
-                        <td data-label="Tipo">${typeBadge}</td>
-                        <td data-label="GPS / Ubicación">${gpsBadge}</td>
-                        <td data-label="Acciones" class="role-admin-only" style="text-align: center;">${actionsHtml}</td>
-                    `;
-                    tableFragment.appendChild(tr);
-                });
+                        ` : '';
+
+                        tr.innerHTML = `
+                            <td data-label="Colaborador">
+                                ${renderCollabNameBadge(f.name, f.username)}
+                                ${f.observacion ? `<div style="font-size: 11px; color: #fbbf24; margin-top: 3px;" title="${f.observacion}">📝 ${f.observacion}</div>` : ''}
+                            </td>
+                            <td data-label="Fecha">
+                                <div style="font-weight: 600; color: var(--text-primary);">${dayGroup.dateInfo.ar}</div>
+                                <div style="font-size: 11px; color: #38bdf8; font-weight: 700; text-transform: capitalize; margin-top: 2px;">
+                                    ${dayGroup.dateInfo.dayName}
+                                </div>
+                            </td>
+                            <td data-label="Entrada" class="cell-entrada ${f.type !== 'Entrada' ? 'cell-empty' : ''}">${entCellHtml}</td>
+                            <td data-label="Salida" class="cell-salida ${f.type !== 'Salida' ? 'cell-empty' : ''}">${salCellHtml}</td>
+                            <td data-label="GPS / Ubicación">${gpsBadge}</td>
+                            <td data-label="Acciones" class="role-admin-only" style="text-align: center;">${actionsHtml}</td>
+                        `;
+                        tableFragment.appendChild(tr);
+                    });
+                }
             });
+
             tableBody.appendChild(tableFragment);
         }
 
@@ -2596,6 +3190,160 @@
             }
             if (defaultType) {
                 setFichajeType(defaultType);
+            }
+        };
+
+        window.openModalEditarTurno = function(idIn, idOut) {
+            if (!isAdminRole()) {
+                showToast("Acceso restringido: solo Administradores pueden editar fichajes.", "warning");
+                return;
+            }
+
+            const recIn = idIn ? fichajes.find(f => f.id === idIn) : null;
+            const recOut = idOut ? fichajes.find(f => f.id === idOut) : null;
+
+            const targetRec = recIn || recOut;
+            if (!targetRec) return;
+
+            document.getElementById('editTurnoInId').value = idIn || '';
+            document.getElementById('editTurnoOutId').value = idOut || '';
+            document.getElementById('editTurnoCollabName').value = targetRec.name || '';
+            document.getElementById('editTurnoCollabDisplay').value = targetRec.name + (targetRec.username ? ` (@${targetRec.username})` : '');
+            document.getElementById('editTurnoDate').value = targetRec.date || getLocalISODate(getSyncedDate());
+
+            document.getElementById('editTurnoTimeIn').value = recIn ? formatTime12hTo24h(recIn.time) : '';
+            document.getElementById('editTurnoTimeOut').value = recOut ? formatTime12hTo24h(recOut.time) : '';
+            document.getElementById('editTurnoObservacion').value = (recIn && recIn.observacion) || (recOut && recOut.observacion) || '';
+
+            document.getElementById('modalEditarTurno').classList.add('show');
+        };
+
+        window.closeModalEditarTurno = function() {
+            const m = document.getElementById('modalEditarTurno');
+            if (m) m.classList.remove('show');
+        };
+
+        window.handleFormEditarTurnoSubmit = async function(e) {
+            e.preventDefault();
+            if (!isAdminRole()) return;
+
+            const idIn = document.getElementById('editTurnoInId').value;
+            const idOut = document.getElementById('editTurnoOutId').value;
+            const collabName = document.getElementById('editTurnoCollabName').value;
+            const dateVal = document.getElementById('editTurnoDate').value;
+            const timeInVal = document.getElementById('editTurnoTimeIn').value;
+            const timeOutVal = document.getElementById('editTurnoTimeOut').value;
+            const obsVal = document.getElementById('editTurnoObservacion').value.trim();
+
+            if (!timeInVal && !timeOutVal) {
+                showToast("Debes ingresar al menos una hora de Entrada o Salida.", "warning");
+                return;
+            }
+
+            try {
+                const collabObj = colaboradores.find(c => c.name && c.name.trim().toLowerCase() === collabName.trim().toLowerCase());
+                const collabUser = (collabObj && collabObj.username) ? collabObj.username : '';
+
+                // 1. Manejo de Entrada
+                if (timeInVal) {
+                    const formattedInTime = formatTime24hTo12h(timeInVal);
+                    const tsIn = `${dateVal}T${timeInVal}:00.000Z`;
+                    if (idIn) {
+                        const foundIn = fichajes.find(f => f.id === idIn);
+                        if (foundIn) {
+                            foundIn.date = dateVal;
+                            foundIn.time = formattedInTime;
+                            foundIn.timestamp = tsIn;
+                            foundIn.observacion = obsVal;
+                        }
+                        if (typeof db !== 'undefined' && db) {
+                            await db.collection('fichajes').doc(idIn).update({
+                                date: dateVal,
+                                time: formattedInTime,
+                                timestamp: tsIn,
+                                observacion: obsVal
+                            }).catch(() => {});
+                        }
+                    } else {
+                        const newInId = `fichaje-${Date.now()}-in`;
+                        const newInData = {
+                            name: collabName,
+                            username: collabUser,
+                            date: dateVal,
+                            time: formattedInTime,
+                            timestamp: tsIn,
+                            type: 'Entrada',
+                            observacion: obsVal,
+                            gps: { lat: 0, lng: 0, verified: false, manual: true }
+                        };
+                        fichajes.unshift({ id: newInId, ...newInData });
+                        if (typeof db !== 'undefined' && db) {
+                            db.collection('fichajes').add(newInData).then(doc => {
+                                const f = fichajes.find(x => x.id === newInId);
+                                if (f) f.id = doc.id;
+                                localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+                            }).catch(() => {});
+                        }
+                    }
+                }
+
+                // 2. Manejo de Salida
+                if (timeOutVal) {
+                    const formattedOutTime = formatTime24hTo12h(timeOutVal);
+                    const tsOut = `${dateVal}T${timeOutVal}:00.000Z`;
+                    if (idOut) {
+                        const foundOut = fichajes.find(f => f.id === idOut);
+                        if (foundOut) {
+                            foundOut.date = dateVal;
+                            foundOut.time = formattedOutTime;
+                            foundOut.timestamp = tsOut;
+                            foundOut.observacion = obsVal;
+                        }
+                        if (typeof db !== 'undefined' && db) {
+                            await db.collection('fichajes').doc(idOut).update({
+                                date: dateVal,
+                                time: formattedOutTime,
+                                timestamp: tsOut,
+                                observacion: obsVal
+                            }).catch(() => {});
+                        }
+                    } else {
+                        const newOutId = `fichaje-${Date.now()}-out`;
+                        const newOutData = {
+                            name: collabName,
+                            username: collabUser,
+                            date: dateVal,
+                            time: formattedOutTime,
+                            timestamp: tsOut,
+                            type: 'Salida',
+                            observacion: obsVal,
+                            gps: { lat: 0, lng: 0, verified: false, manual: true }
+                        };
+                        fichajes.unshift({ id: newOutId, ...newOutData });
+                        if (typeof db !== 'undefined' && db) {
+                            db.collection('fichajes').add(newOutData).then(doc => {
+                                const f = fichajes.find(x => x.id === newOutId);
+                                if (f) f.id = doc.id;
+                                localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+                            }).catch(() => {});
+                        }
+                    }
+                }
+
+                fichajes = deduplicateFichajesList(fichajes);
+                localStorage.setItem('electrofrio_fichajes', JSON.stringify(fichajes));
+
+                closeModalEditarTurno();
+                renderAll();
+                updateCollabFichajeUI();
+                showToast("Fichaje actualizado correctamente.", "success");
+
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'FICHAJE_UPDATED' }, '*');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("Error al guardar cambios del turno.", "error");
             }
         };
 
