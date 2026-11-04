@@ -810,7 +810,8 @@
                     <div class="input-group role-admin-only">
                         <label for="detail-address-input">Dirección</label>
                         <div style="display:flex; gap:6px;">
-                            <input type="text" id="detail-address-input" style="flex:1; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                            <input type="text" id="detail-address-input" list="detail-address-suggestions" placeholder="Dirección del servicio..." style="flex:1; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                            <datalist id="detail-address-suggestions"></datalist>
                             <a id="btnDetailOpenMaps" href="#" target="_blank" rel="noopener noreferrer" style="display:none; align-items:center; justify-content:center; padding:0 12px; background:rgba(0,180,216,0.18); border:1px solid var(--color-blue); color:var(--color-blue); border-radius:6px; font-size:12px; font-weight:700; text-decoration:none;" title="Ver en Google Maps">🗺️ Maps</a>
                         </div>
                     </div>
@@ -1017,6 +1018,16 @@
                     renderOrdersFullTable();
                 } catch(err) {}
             }
+            if (e.key === 'electrofrio_clients') {
+                try {
+                    clientes = JSON.parse(e.newValue) || [];
+                    const curClientId = document.getElementById('order-client')?.value;
+                    if (curClientId) {
+                        const curC = clientes.find(c => c.id === curClientId || c.clientCode === curClientId);
+                        if (curC) renderAddressChoices(curC, document.getElementById('order-address')?.value || '');
+                    }
+                } catch(err) {}
+            }
         });
 
         // 3. ESTADO GLOBAL LOCAL
@@ -1024,6 +1035,12 @@
         let currentName = localStorage.getItem('electrofrio_name') || '';
         let ordenesTrabajo = [];
         let clientes = [];
+        try {
+            const cachedClients = localStorage.getItem('electrofrio_clients');
+            if (cachedClients) {
+                clientes = JSON.parse(cachedClients) || [];
+            }
+        } catch(e) {}
         let colaboradores = [];
         try {
             const cachedCollabs = localStorage.getItem('electrofrio_collaborators') || localStorage.getItem('electrofrio_colaboradores');
@@ -1900,6 +1917,13 @@
         }
 
         window.openAddOrderModal = function() {
+            try {
+                const cached = localStorage.getItem('electrofrio_clients');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (Array.isArray(parsed) && parsed.length > 0) clientes = parsed;
+                }
+            } catch(e) {}
             populateAssigneeSelect();
             const form = document.getElementById('formNuevaOrden');
             if (form) form.reset();
@@ -1929,17 +1953,23 @@
             const sug = document.getElementById('order-client-suggestions');
             if (!input || !sug) return;
 
-            input.addEventListener('input', () => {
+            const showSuggestions = () => {
                 const val = input.value.trim().toLowerCase();
                 sug.innerHTML = '';
+
+                let matches;
                 if (!val) {
-                    sug.style.display = 'none';
-                    if (hidden) hidden.value = '';
-                    renderAddressChoices(null);
-                    return;
+                    matches = clientes.slice(0, 15);
+                } else {
+                    matches = clientes.filter(c => {
+                        const name = (c.name || '').toLowerCase();
+                        const code = (c.clientCode || c.id || '').toLowerCase();
+                        const addrsStr = (Array.isArray(c.addresses) ? c.addresses.join(' ') : (c.address || '')).toLowerCase();
+                        const phone = (c.phone || '').toLowerCase();
+                        return name.includes(val) || code.includes(val) || addrsStr.includes(val) || phone.includes(val);
+                    });
                 }
 
-                const matches = clientes.filter(c => (c.name || '').toLowerCase().includes(val));
                 if (matches.length === 0) {
                     sug.innerHTML = `
                         <div class="autocomplete-suggestion" style="color: var(--color-blue); font-weight: 600;" onclick="openNewClientModalForOrder('${input.value.trim()}')">
@@ -1953,8 +1983,34 @@
                 matches.forEach(c => {
                     const div = document.createElement('div');
                     div.className = 'autocomplete-suggestion';
-                    div.innerHTML = `<strong>${c.name}</strong> <span style="font-size: 11px; opacity: 0.6;">(${c.address || 'Sin dir'})</span>`;
-                    div.onclick = () => {
+                    const codeBadge = c.clientCode ? `<span style="color: var(--color-blue); font-size: 11px; font-weight: 700; margin-left: 6px;">[${c.clientCode}]</span>` : '';
+                    
+                    const addrsList = [];
+                    if (Array.isArray(c.addresses)) {
+                        c.addresses.forEach(a => {
+                            const str = typeof a === 'object' ? (a.address || a.dir || '') : String(a || '');
+                            if (str && str.trim() && str.toLowerCase() !== 'sin especificar' && str.toLowerCase() !== 'sin domicilio' && !addrsList.includes(str.trim())) {
+                                addrsList.push(str.trim());
+                            }
+                        });
+                    }
+                    if (c.address && c.address.trim() && c.address.toLowerCase() !== 'sin especificar' && c.address.toLowerCase() !== 'sin domicilio' && !addrsList.includes(c.address.trim())) {
+                        addrsList.unshift(c.address.trim());
+                    }
+
+                    const addrsPreview = addrsList.length > 0 ? addrsList.slice(0, 2).join(' • ') : (c.address || 'Sin domicilio registrado');
+                    div.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${c.name}</strong> ${codeBadge}
+                                <div style="font-size: 11px; opacity: 0.75; margin-top: 2px;">📍 ${addrsPreview}${addrsList.length > 2 ? ` (+${addrsList.length - 2} más)` : ''}</div>
+                            </div>
+                        </div>
+                    `;
+                    div.onmousedown = (e) => e.preventDefault();
+                    div.onpointerdown = (e) => e.preventDefault();
+                    div.onclick = (e) => {
+                        e.stopPropagation();
                         input.value = c.name;
                         if (hidden) hidden.value = c.id;
                         sug.style.display = 'none';
@@ -1963,6 +2019,43 @@
                     sug.appendChild(div);
                 });
                 sug.style.display = 'block';
+            };
+
+            input.addEventListener('input', () => {
+                showSuggestions();
+                const val = input.value.trim().toLowerCase();
+                if (val) {
+                    const exact = clientes.find(c => 
+                        (c.name && c.name.trim().toLowerCase() === val) ||
+                        (c.clientCode && c.clientCode.trim().toLowerCase() === val) ||
+                        (c.id && c.id.trim().toLowerCase() === val)
+                    );
+                    if (exact) {
+                        if (hidden) hidden.value = exact.id;
+                        renderAddressChoices(exact, document.getElementById('order-address')?.value || '');
+                    }
+                }
+            });
+            input.addEventListener('focus', showSuggestions);
+            input.addEventListener('click', showSuggestions);
+
+            input.addEventListener('blur', () => {
+                setTimeout(() => {
+                    const val = input.value.trim().toLowerCase();
+                    if (val) {
+                        const matched = clientes.find(c => 
+                            (c.name && c.name.trim().toLowerCase() === val) ||
+                            (c.clientCode && c.clientCode.trim().toLowerCase() === val) ||
+                            (c.id && c.id.trim().toLowerCase() === val)
+                        ) || clientes.find(c => c.name && c.name.trim().toLowerCase().startsWith(val))
+                          || clientes.find(c => c.name && c.name.trim().toLowerCase().includes(val));
+                        if (matched) {
+                            input.value = matched.name;
+                            if (hidden) hidden.value = matched.id;
+                            renderAddressChoices(matched, document.getElementById('order-address')?.value || '');
+                        }
+                    }
+                }, 250);
             });
 
             document.addEventListener('click', (e) => {
@@ -1977,14 +2070,45 @@
             cont.innerHTML = '';
 
             if (!c) {
-                cont.innerHTML = `<span style="color: var(--text-muted); font-size: 13px; padding: 4px;">Seleccione un cliente primero...</span>`;
-                if (hidden) hidden.value = '';
+                cont.innerHTML = `
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <span style="color: var(--text-muted); font-size: 13px;">Escriba o seleccione un cliente para ver sus ubicaciones, o ingrese un domicilio manual:</span>
+                        <input type="text" id="order-address-manual-fallback" placeholder="Calle, Número, Localidad (o link de Google Maps)" value="${selectedAddr || ''}" style="width: 100%; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 13px; box-sizing: border-box;">
+                    </div>
+                `;
+                const manualInput = document.getElementById('order-address-manual-fallback');
+                if (manualInput) {
+                    manualInput.addEventListener('input', (e) => {
+                        if (hidden) hidden.value = e.target.value.trim();
+                    });
+                }
+                if (hidden && selectedAddr) hidden.value = selectedAddr;
                 return;
             }
 
-            const addrs = Array.isArray(c.addresses) && c.addresses.length > 0 ? [...c.addresses] : [c.address || 'Sin especificar'];
-            if (selectedAddr && !addrs.includes(selectedAddr)) {
-                addrs.unshift(selectedAddr);
+            // Recolectar todas las direcciones reales del cliente
+            const addrs = [];
+            if (Array.isArray(c.addresses)) {
+                c.addresses.forEach(a => {
+                    const str = typeof a === 'object' ? (a.address || a.dir || '') : String(a || '');
+                    if (str && str.trim() && str.toLowerCase() !== 'sin especificar' && str.toLowerCase() !== 'sin domicilio' && !addrs.includes(str.trim())) {
+                        addrs.push(str.trim());
+                    }
+                });
+            }
+            if (c.address && c.address.trim() && c.address.toLowerCase() !== 'sin especificar' && c.address.toLowerCase() !== 'sin domicilio' && !addrs.includes(c.address.trim())) {
+                addrs.unshift(c.address.trim());
+            }
+            if (c.domicilio && c.domicilio.trim() && c.domicilio.toLowerCase() !== 'sin especificar' && c.domicilio.toLowerCase() !== 'sin domicilio' && !addrs.includes(c.domicilio.trim())) {
+                addrs.push(c.domicilio.trim());
+            }
+
+            if (selectedAddr && selectedAddr.trim() && selectedAddr.toLowerCase() !== 'sin especificar' && selectedAddr.toLowerCase() !== 'sin domicilio' && !addrs.includes(selectedAddr.trim())) {
+                addrs.push(selectedAddr.trim());
+            }
+
+            if (addrs.length === 0) {
+                addrs.push("Sin especificar");
             }
 
             const cleanSelected = (selectedAddr || '').trim().toLowerCase();
@@ -1993,22 +2117,42 @@
                 const isChecked = cleanSelected ? (addr.trim().toLowerCase() === cleanSelected) : (i === 0);
                 if (isChecked && hidden) hidden.value = addr;
 
+                const mapsUrl = getGoogleMapsUrl(addr, c);
+                const mapsBtnHtml = mapsUrl ? `
+                    <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" 
+                       onclick="event.stopPropagation();" 
+                       title="Abrir ubicación en Google Maps" 
+                       style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; background: rgba(0, 180, 216, 0.15); border: 1px solid var(--color-blue); color: var(--color-blue); border-radius: 4px; font-size: 11px; font-weight: 700; text-decoration: none; flex-shrink: 0;">
+                        <span>🗺️ Maps</span>
+                    </a>
+                ` : '';
+
                 const card = document.createElement('label');
                 card.className = `address-choice-card ${isChecked ? 'selected' : ''}`;
                 card.htmlFor = `addr-order-opt-${i}`;
+                card.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.02); margin-bottom: 4px; transition: all 0.2s;';
                 card.innerHTML = `
                     <input type="radio" name="order-addr-choice" id="addr-order-opt-${i}" value="${addr}" ${isChecked ? 'checked' : ''} style="cursor: pointer;">
                     <span style="font-size: 14px; flex-shrink: 0;">📍</span>
-                    <span style="font-size: 13px; font-weight: 500; color: var(--text-primary); flex: 1; text-align: left; word-break: break-word;">${addr}</span>
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-primary); flex: 1; text-align: left; word-break: break-word;">${addr}</span>
+                    ${mapsBtnHtml}
                 `;
 
                 const radio = card.querySelector('input');
-                radio.onchange = (e) => {
-                    if (hidden) hidden.value = e.target.value;
+                const selectThisAddr = () => {
+                    radio.checked = true;
+                    if (hidden) hidden.value = addr;
                     cont.querySelectorAll('.address-choice-card').forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                     const customInput = document.getElementById('order-address-custom-input');
                     if (customInput) customInput.style.display = 'none';
+                };
+
+                radio.onchange = selectThisAddr;
+                card.onclick = (e) => {
+                    if (e.target !== radio && !e.target.closest('a')) {
+                        selectThisAddr();
+                    }
                 };
 
                 cont.appendChild(card);
@@ -2021,7 +2165,7 @@
             const customWrap = document.createElement('div');
             customWrap.style.cssText = 'display: flex; flex-direction: column; gap: 6px; margin-top: 4px;';
             customWrap.innerHTML = `
-                <label class="address-choice-card ${isCustomSelected ? 'selected' : ''}" for="addr-order-opt-custom" style="cursor: pointer;">
+                <label class="address-choice-card ${isCustomSelected ? 'selected' : ''}" for="addr-order-opt-custom" style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 6px; border: 1px dashed var(--color-blue); background: rgba(0, 180, 216, 0.05);">
                     <input type="radio" name="order-addr-choice" id="addr-order-opt-custom" value="CUSTOM" ${isCustomSelected ? 'checked' : ''} style="cursor: pointer;">
                     <span style="font-size: 13px; font-weight: 700; color: var(--color-blue); flex: 1; text-align: left;">+ Otro Domicilio (escribir nuevo)</span>
                 </label>
@@ -2032,12 +2176,20 @@
             const customInput = customWrap.querySelector('#order-address-custom-input');
             const customCard = customWrap.querySelector('label');
 
-            customRadio.onchange = (e) => {
+            const selectCustomAddr = () => {
+                customRadio.checked = true;
                 cont.querySelectorAll('.address-choice-card').forEach(c => c.classList.remove('selected'));
                 customCard.classList.add('selected');
                 customInput.style.display = 'block';
                 customInput.focus();
                 if (hidden) hidden.value = customInput.value.trim() || 'Sin especificar';
+            };
+
+            customRadio.onchange = selectCustomAddr;
+            customCard.onclick = (e) => {
+                if (e.target !== customRadio) {
+                    selectCustomAddr();
+                }
             };
 
             customInput.oninput = (e) => {
@@ -2095,33 +2247,48 @@
                     let clientId = "";
                     let clientName = "";
 
-                    const isNewClient = clientVal === 'NEW_CLIENT' || (!clientVal && clientSearchVal && !clientes.some(c => c.name.toLowerCase() === clientSearchVal.toLowerCase()));
+                    let clientObj = clientes.find(c => c.id === clientVal);
+                    if (!clientObj && clientSearchVal) {
+                        const searchLower = clientSearchVal.trim().toLowerCase();
+                        clientObj = clientes.find(c => 
+                            (c.name && c.name.trim().toLowerCase() === searchLower) ||
+                            (c.clientCode && c.clientCode.trim().toLowerCase() === searchLower) ||
+                            (c.id && c.id.trim().toLowerCase() === searchLower)
+                        ) || clientes.find(c => c.name && c.name.trim().toLowerCase().startsWith(searchLower))
+                          || clientes.find(c => c.name && c.name.trim().toLowerCase().includes(searchLower));
+                    }
 
-                    if (isNewClient) {
-                        const newName = document.getElementById('order-new-client-name').value.trim() || clientSearchVal;
-                        const newPhone = document.getElementById('order-new-client-phone').value.trim();
-
-                        const newClientRef = db.collection('clientes').doc();
-                        clientId = newClientRef.id;
-                        clientName = newName;
-
-                        await newClientRef.set({
+                    if (clientObj) {
+                        clientId = clientObj.id;
+                        clientName = clientObj.name;
+                        if (!address || address === 'Sin especificar') {
+                            address = clientObj.address || (Array.isArray(clientObj.addresses) && clientObj.addresses[0]) || 'Sin especificar';
+                        }
+                    } else {
+                        // Crear cliente automáticamente si no existía
+                        const newCode = getNextClientCode();
+                        clientId = 'cli-' + Date.now();
+                        clientName = clientSearchVal || "Cliente Particular";
+                        const newPhone = document.getElementById('order-new-client-phone')?.value.trim() || '';
+                        const newClientData = {
                             id: clientId,
+                            clientCode: newCode,
                             name: clientName,
                             address: address || 'Sin especificar',
-                            addresses: address ? [address, 'Sin especificar'] : ['Sin especificar'],
+                            addresses: address && address !== 'Sin especificar' ? [address] : ['Sin especificar'],
+                            addressesMaps: [''],
+                            addressMapsLinks: {},
                             phone: newPhone,
-                            history: []
-                        });
-                    } else {
-                        const clientObj = clientes.find(c => c.id === clientVal || c.name.toLowerCase() === clientSearchVal.toLowerCase());
-                        if (clientObj) {
-                            clientId = clientObj.id;
-                            clientName = clientObj.name;
-                        } else {
-                            clientId = "";
-                            clientName = clientSearchVal || "Cliente Particular";
+                            cuit: '',
+                            notes: 'Creado desde Orden de Trabajo',
+                            updatedAt: new Date().toISOString()
+                        };
+                        clientes.unshift(newClientData);
+                        try { localStorage.setItem('electrofrio_clients', JSON.stringify(clientes)); } catch(e) {}
+                        if (typeof db !== 'undefined' && db) {
+                            await db.collection('clientes').doc(clientId).set(newClientData, { merge: true }).catch(err => console.warn(err));
                         }
+                        window.parent.postMessage({ type: 'CLIENT_UPDATED' }, '*');
                     }
 
                     const orderIdStr = getNextOrderId();
@@ -2245,6 +2412,23 @@
             if (detailClientInput) detailClientInput.value = ord.client || "";
             if (detailAddressInput) detailAddressInput.value = ord.address || "";
             if (detailTypeInput) detailTypeInput.value = ord.type || "";
+
+            // Llenar sugerencias de domicilios del cliente para selección rápida
+            const dList = document.getElementById('detail-address-suggestions');
+            if (dList && cObj) {
+                const addrs = [];
+                if (Array.isArray(cObj.addresses)) {
+                    cObj.addresses.forEach(a => {
+                        if (a && a.trim() && a.toLowerCase() !== 'sin especificar' && a.toLowerCase() !== 'sin domicilio' && !addrs.includes(a.trim())) {
+                            addrs.push(a.trim());
+                        }
+                    });
+                }
+                if (cObj.address && cObj.address.trim() && cObj.address.toLowerCase() !== 'sin especificar' && cObj.address.toLowerCase() !== 'sin domicilio' && !addrs.includes(cObj.address.trim())) {
+                    addrs.unshift(cObj.address.trim());
+                }
+                dList.innerHTML = addrs.map(a => `<option value="${a}">`).join('');
+            }
 
             const statusSelect = document.getElementById('detail-status');
             if (statusSelect) statusSelect.value = ord.status || "Pendiente";
@@ -2783,24 +2967,12 @@
                 }
                 localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
 
-                // 3. Sincronizar en la nube con Firestore usando .set con { merge: true }
+                // 3. Sincronizar en la nube con Firestore usando .doc(targetDocId).set(clientData, { merge: true })
                 if (typeof db !== 'undefined' && db) {
                     try {
-                        if (editId) {
-                            await db.collection('clientes').doc(editId).set(clientData, { merge: true });
-                            showToast(`Cliente actualizado correctamente (${code})`, "success");
-                        } else {
-                            const docRef = await db.collection('clientes').add(clientData);
-                            if (docRef && docRef.id && docRef.id !== finalId) {
-                                const oldId = clientData.id;
-                                clientData.id = docRef.id;
-                                const idx = clientes.findIndex(c => c.id === oldId);
-                                if (idx !== -1) clientes[idx].id = docRef.id;
-                                localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
-                                savedClient = clientData;
-                            }
-                            showToast(`Cliente creado con éxito (${code})`, "success");
-                        }
+                        const targetDocId = editId || finalId;
+                        await db.collection('clientes').doc(targetDocId).set(clientData, { merge: true });
+                        showToast(`Cliente guardado correctamente (${code})`, "success");
                     } catch (cloudErr) {
                         console.warn("Aviso: Sincronización en la nube diferida:", cloudErr);
                         showToast(`Cliente guardado localmente (${code})`, "success");
@@ -2936,6 +3108,19 @@
                     renderLiveWorkSummary();
                 } catch(e) {}
             }
+            if (event.data.type === 'CLIENT_UPDATED' || event.data.type === 'CLIENT_DELETED') {
+                try {
+                    const cached = localStorage.getItem('electrofrio_clients');
+                    if (cached) clientes = JSON.parse(cached) || clientes;
+                    renderOrdersFullTable();
+                    renderLiveWorkSummary();
+                    const curClientId = document.getElementById('order-client')?.value;
+                    if (curClientId) {
+                        const curC = clientes.find(c => c.id === curClientId || c.clientCode === curClientId);
+                        if (curC) renderAddressChoices(curC, document.getElementById('order-address')?.value || '');
+                    }
+                } catch(e) {}
+            }
         });
 
         function updateCollabFilterOptions() {
@@ -2998,12 +3183,22 @@
             // B. Colección Clientes
             db.collection('clientes').onSnapshot(snap => {
                 const list = [];
+                let deletedIds = [];
+                try { deletedIds = JSON.parse(localStorage.getItem('electrofrio_deleted_clients') || '[]'); } catch(e) {}
                 snap.forEach(doc => {
                     const data = doc.data();
                     data.id = doc.id;
-                    list.push(data);
+                    if (!deletedIds.includes(data.id) && !deletedIds.includes(data.clientCode)) {
+                        list.push(data);
+                    }
                 });
                 clientes = list;
+                try { localStorage.setItem('electrofrio_clients', JSON.stringify(clientes)); } catch(e) {}
+                const curClientId = document.getElementById('order-client')?.value;
+                if (curClientId) {
+                    const curC = clientes.find(c => c.id === curClientId || c.clientCode === curClientId);
+                    if (curC) renderAddressChoices(curC, document.getElementById('order-address')?.value || '');
+                }
             });
 
             // C. Colección Órdenes (Carga completa en tiempo real sin recortes de fecha)

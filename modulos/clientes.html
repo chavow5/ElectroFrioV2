@@ -440,6 +440,7 @@
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
+        const auth = firebase.auth();
         const db = firebase.firestore();
         db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
@@ -534,7 +535,22 @@
             return '';
         }
 
-        // 5.1 CÓDIGO SECUENCIAL Y ORDENAMIENTO DE CLIENTES
+        // 5.1 GESTIÓN DE CLIENTES ELIMINADOS (TOMBSTONES)
+        function getDeletedClientIds() {
+            try {
+                return JSON.parse(localStorage.getItem('electrofrio_deleted_clients') || '[]');
+            } catch(e) {
+                return [];
+            }
+        }
+
+        function saveDeletedClientIds(arr) {
+            try {
+                localStorage.setItem('electrofrio_deleted_clients', JSON.stringify(arr));
+            } catch(e) {}
+        }
+
+        // 5.2 CÓDIGO SECUENCIAL Y ORDENAMIENTO DE CLIENTES
         function getClientCodeNumber(c) {
             if (!c) return 0;
             if (c.clientCode) {
@@ -600,6 +616,79 @@
                 if (num > maxNum) maxNum = num;
             });
             return `CLI-${String(maxNum + 1).padStart(4, '0')}`;
+        }
+
+        // 5.3 AUTO-CONFIGURACIÓN Y MIGRACIÓN A CÓDIGO NUEVO (CLI-xxxx)
+        function normalizeAndMigrateClients(list) {
+            if (!Array.isArray(list)) return { filtered: [], hasChanges: false };
+            const deleted = getDeletedClientIds();
+            const filtered = list.filter(c => c && !deleted.includes(c.id) && !deleted.includes(c.clientCode));
+
+            const usedCodes = new Set();
+            let maxNum = 0;
+
+            filtered.forEach(c => {
+                if (c.clientCode && /^CLI-\d{4}$/i.test(c.clientCode)) {
+                    const formatted = c.clientCode.toUpperCase();
+                    if (!usedCodes.has(formatted)) {
+                        usedCodes.add(formatted);
+                        const n = parseInt(formatted.replace('CLI-', ''), 10);
+                        if (n > maxNum && n < 1000000) maxNum = n;
+                    }
+                }
+            });
+
+            let hasChanges = false;
+            filtered.forEach(c => {
+                let code = c.clientCode ? c.clientCode.toUpperCase() : '';
+                // Si no tiene código válido o está duplicado
+                if (!code || !/^CLI-\d{4}$/.test(code)) {
+                    let candidateNum = 0;
+                    if (c.id && /^cli-\d{1,4}$/i.test(c.id)) {
+                        const m = c.id.match(/\d+/);
+                        if (m) candidateNum = parseInt(m[0], 10);
+                    }
+                    let candidateCode = candidateNum > 0 ? `CLI-${String(candidateNum).padStart(4, '0')}` : '';
+                    if (!candidateCode || usedCodes.has(candidateCode)) {
+                        maxNum++;
+                        candidateCode = `CLI-${String(maxNum).padStart(4, '0')}`;
+                    }
+                    c.clientCode = candidateCode;
+                    usedCodes.add(candidateCode);
+                    hasChanges = true;
+                } else {
+                    usedCodes.add(code);
+                    c.clientCode = code;
+                }
+
+                // Si no tiene ID de documento en Firestore o memoria
+                if (!c.id || String(c.id).trim() === '') {
+                    c.id = c.clientCode.toLowerCase();
+                    hasChanges = true;
+                }
+
+                if (!Array.isArray(c.addresses)) {
+                    c.addresses = c.address ? [c.address] : ['Sin especificar'];
+                }
+            });
+
+            // Si se corrigieron o asignaron IDs/códigos nuevos, sincronizar con Firestore y local
+            if (hasChanges) {
+                try {
+                    localStorage.setItem('electrofrio_clients', JSON.stringify(filtered));
+                } catch(e) {}
+                if (typeof db !== 'undefined' && db) {
+                    filtered.forEach(c => {
+                        if (c.id && c.clientCode) {
+                            db.collection('clientes').doc(c.id).set(c, { merge: true }).catch(err => {
+                                console.warn("Aviso al sincronizar cliente normalizado:", err);
+                            });
+                        }
+                    });
+                }
+            }
+
+            return { filtered, hasChanges };
         }
 
         // 6. RENDERIZAR TABLA DE CLIENTES
@@ -672,9 +761,9 @@
                     <td data-label="CUIT / DNI" style="font-size:12px;">${c.cuit || '-'}</td>
                     <td data-label="Acciones" style="text-align:center;">
                         <div style="display:flex; gap:6px; justify-content:center; flex-wrap:nowrap;">
-                            <button class="save-btn" style="width:auto; margin:0; padding:5px 8px; font-size:11px;" onclick="openNewClientModal('${c.id}')">✏️ Editar</button>
-                            <button class="save-btn" style="width:auto; margin:0; padding:5px 8px; font-size:11px; background-color:rgba(0,180,216,0.18); border:1px solid var(--color-blue); color:var(--color-blue);" onclick="viewClientHistory('${c.id}')">📋 Historial</button>
-                            <button class="save-btn" style="width:auto; margin:0; padding:5px 8px; font-size:11px; background-color:#7a1a1a; color:white; border-color:#992020;" onclick="deleteClient('${c.id}')">🗑️</button>
+                            <button class="save-btn" style="width:auto; margin:0; padding:5px 8px; font-size:11px;" onclick="openNewClientModal('${c.id || c.clientCode}')">✏️ Editar</button>
+                            <button class="save-btn" style="width:auto; margin:0; padding:5px 8px; font-size:11px; background-color:rgba(0,180,216,0.18); border:1px solid var(--color-blue); color:var(--color-blue);" onclick="viewClientHistory('${c.id || c.clientCode}')">📋 Historial</button>
+                            <button class="save-btn" style="width:auto; margin:0; padding:5px 8px; font-size:11px; background-color:#7a1a1a; color:white; border-color:#992020;" onclick="deleteClient('${c.id || c.clientCode}')">🗑️</button>
                         </div>
                     </td>
                 `;
@@ -931,24 +1020,12 @@
                 closeNewClientModal();
                 window.parent.postMessage({ type: 'CLIENT_UPDATED' }, '*');
 
-                // 3. Sincronizar en la nube con Firestore usando .set con { merge: true }
+                // 3. Sincronizar en la nube con Firestore usando .doc(finalId).set(clientData, { merge: true })
                 if (typeof db !== 'undefined' && db) {
                     try {
-                        if (editId) {
-                            await db.collection('clientes').doc(editId).set(clientData, { merge: true });
-                            showToast(`Cliente actualizado correctamente (${code})`, "success");
-                        } else {
-                            const docRef = await db.collection('clientes').add(clientData);
-                            if (docRef && docRef.id && docRef.id !== finalId) {
-                                const oldId = clientData.id;
-                                clientData.id = docRef.id;
-                                const idx = clientes.findIndex(c => c.id === oldId);
-                                if (idx !== -1) clientes[idx].id = docRef.id;
-                                localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
-                                renderClientsTable();
-                            }
-                            showToast(`Cliente creado con éxito (${code})`, "success");
-                        }
+                        const targetDocId = editId || finalId;
+                        await db.collection('clientes').doc(targetDocId).set(clientData, { merge: true });
+                        showToast(`Cliente guardado correctamente (${code})`, "success");
                     } catch (cloudErr) {
                         console.warn("Aviso: Sincronización en la nube diferida:", cloudErr);
                         showToast(`Cliente guardado localmente (${code})`, "success");
@@ -972,15 +1049,75 @@
 
         // 8. ELIMINAR CLIENTE
         window.deleteClient = async function(id) {
-            if (confirm("¿Estás seguro de que deseas eliminar este cliente? Esto no borrará sus planillas de trabajo.")) {
-                try {
-                    await db.collection('clientes').doc(id).delete();
-                    showToast("Cliente eliminado exitosamente", "success");
-                    window.parent.postMessage({ type: 'CLIENT_UPDATED' }, '*');
-                } catch (error) {
-                    console.error("Error al eliminar cliente:", error);
-                    showToast("Error al eliminar cliente", "error");
+            if (!id) return;
+            const target = clientes.find(c => c.id === id || c.clientCode === id);
+            const clientName = target ? target.name : 'este cliente';
+            const displayCode = target ? (target.clientCode || target.id) : id;
+
+            if (!confirm(`¿Estás seguro de que deseas eliminar al cliente "${clientName}" (${displayCode})?\nEsta acción lo eliminará en todos los dispositivos conectados.`)) {
+                return;
+            }
+
+            try {
+                // 1. Guardar en lista de eliminados (tombstones) para evitar que viejas copias locales lo revivan
+                const delList = getDeletedClientIds();
+                if (id && !delList.includes(id)) delList.push(id);
+                if (target && target.id && !delList.includes(target.id)) delList.push(target.id);
+                if (target && target.clientCode && !delList.includes(target.clientCode)) delList.push(target.clientCode);
+                saveDeletedClientIds(delList);
+
+                // 2. Eliminar de memoria y localStorage inmediatamente
+                clientes = clientes.filter(c => c.id !== id && c.clientCode !== id && (!target || (c.id !== target.id && c.clientCode !== target.clientCode)));
+                localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
+                renderClientsTable();
+
+                // 3. Eliminar en Firestore (Cloud) de todas las formas posibles:
+                if (typeof db !== 'undefined' && db) {
+                    const deletePromises = [
+                        db.collection('clientes').doc(id).delete().catch(e => console.warn("Error doc delete:", e))
+                    ];
+                    if (target && target.id && target.id !== id) {
+                        deletePromises.push(db.collection('clientes').doc(target.id).delete().catch(() => {}));
+                    }
+                    if (target && target.clientCode && target.clientCode !== id) {
+                        deletePromises.push(db.collection('clientes').doc(target.clientCode).delete().catch(() => {}));
+                    }
+
+                    // Búsqueda en Firestore por campos en caso de que el ID del documento en Firestore sea distinto
+                    try {
+                        const queries = [
+                            db.collection('clientes').where('id', '==', id).get().catch(() => null)
+                        ];
+                        if (target && target.clientCode) {
+                            queries.push(db.collection('clientes').where('clientCode', '==', target.clientCode).get().catch(() => null));
+                        }
+                        const snaps = await Promise.all(queries);
+                        const batch = db.batch();
+                        let count = 0;
+                        snaps.forEach(snap => {
+                            if (snap && !snap.empty) {
+                                snap.forEach(docSnap => {
+                                    batch.delete(docSnap.ref);
+                                    count++;
+                                });
+                            }
+                        });
+                        if (count > 0) {
+                            await batch.commit().catch(() => {});
+                        }
+                    } catch(qErr) {
+                        console.warn("Aviso búsqueda en Firestore:", qErr);
+                    }
+
+                    await Promise.all(deletePromises);
                 }
+
+                showToast(`Cliente "${clientName}" eliminado exitosamente`, "success");
+                window.parent.postMessage({ type: 'CLIENT_UPDATED', deletedId: id }, '*');
+                window.parent.postMessage({ type: 'CLIENT_DELETED', deletedId: id }, '*');
+            } catch (error) {
+                console.error("Error al eliminar cliente:", error);
+                showToast("Error al eliminar cliente: " + error.message, "error");
             }
         };
 
@@ -1044,8 +1181,10 @@
             const cachedClients = localStorage.getItem('electrofrio_clients');
             if (cachedClients) {
                 try {
-                    clientes = JSON.parse(cachedClients) || [];
-                    clientes.sort(compareClientsDescending);
+                    let parsed = JSON.parse(cachedClients) || [];
+                    const { filtered } = normalizeAndMigrateClients(parsed);
+                    filtered.sort(compareClientsDescending);
+                    clientes = filtered;
                     renderClientsTable();
                 } catch(e) {}
             }
@@ -1056,18 +1195,39 @@
             }
 
             // Listener Clientes en Tiempo Real
-            db.collection('clientes').onSnapshot(snap => {
-                const list = [];
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    data.id = doc.id;
-                    list.push(data);
+            const attachClientsListener = () => {
+                db.collection('clientes').onSnapshot(snap => {
+                    const list = [];
+                    snap.forEach(doc => {
+                        const data = doc.data();
+                        data.id = doc.id;
+                        list.push(data);
+                    });
+
+                    // Si Firestore está vacío pero tenemos clientes locales, sincronizarlos a Firestore
+                    if (list.length === 0 && clientes.length > 0) {
+                        clientes.forEach(c => {
+                            if (c.id) db.collection('clientes').doc(c.id).set(c, { merge: true }).catch(() => {});
+                        });
+                    }
+
+                    const { filtered } = normalizeAndMigrateClients(list.length > 0 ? list : clientes);
+                    filtered.sort(compareClientsDescending);
+                    clientes = filtered;
+                    localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
+                    renderClientsTable();
+                }, err => {
+                    console.warn("Aviso Firestore clientes listener:", err);
                 });
-                list.sort(compareClientsDescending);
-                clientes = list;
-                localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
-                renderClientsTable();
-            });
+            };
+
+            if (typeof auth !== 'undefined' && auth) {
+                auth.onAuthStateChanged(user => {
+                    attachClientsListener();
+                });
+            } else {
+                attachClientsListener();
+            }
 
             // Listener Planillas
             db.collection('planillas').onSnapshot(snap => {
@@ -1078,6 +1238,8 @@
                     pList.push(data);
                 });
                 planillas = pList;
+            }, err => {
+                console.warn("Aviso Firestore planillas listener:", err);
             });
         });
     </script>

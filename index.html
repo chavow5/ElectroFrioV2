@@ -769,12 +769,13 @@
             }
 
             if (!localStorage.getItem('electrofrio_clients')) {
+                const deletedIds = JSON.parse(localStorage.getItem('electrofrio_deleted_clients') || '[]');
                 const defaultClients = [
-                    { id: "cli-1", name: "Perez Juan", address: "Av. San Martín 150", phone: "3804349027", history: [] },
-                    { id: "cli-2", name: "Supermercado Sol", address: "Calle Belgrano 482", phone: "3804112233", history: [] },
-                    { id: "cli-3", name: "Ignacio Pérez", address: "Pellegrini 921 4B", phone: "3804445566", history: [] },
-                    { id: "cli-4", name: "Clínica Central", address: "Mitre 1050", phone: "3804778899", history: [] }
-                ];
+                    { id: "cli-0001", clientCode: "CLI-0001", name: "Perez Juan", address: "Av. San Martín 150", phone: "3804349027", history: [] },
+                    { id: "cli-0002", clientCode: "CLI-0002", name: "Supermercado Sol", address: "Calle Belgrano 482", phone: "3804112233", history: [] },
+                    { id: "cli-0003", clientCode: "CLI-0003", name: "Ignacio Pérez", address: "Pellegrini 921 4B", phone: "3804445566", history: [] },
+                    { id: "cli-0004", clientCode: "CLI-0004", name: "Clínica Central", address: "Mitre 1050", phone: "3804778899", history: [] }
+                ].filter(c => !deletedIds.includes(c.id) && !deletedIds.includes(c.clientCode));
                 localStorage.setItem('electrofrio_clients', JSON.stringify(defaultClients));
             }
         }
@@ -1105,6 +1106,7 @@
                 'COLLABORATOR_UPDATED',
                 'ORDER_UPDATED',
                 'CLIENT_UPDATED',
+                'CLIENT_DELETED',
                 'ORDER_COMPLETED'
             ];
             if (broadcastEvents.includes(event.data.type)) {
