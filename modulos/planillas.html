@@ -194,6 +194,11 @@
         }
 
         /* Badges de Estado */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         .status-badge {
             display: inline-block;
             padding: 4px 10px;
@@ -2358,25 +2363,44 @@
             const sug = document.getElementById("pdig-cliente-suggestions");
             if (!input || !sug) return;
 
-            input.addEventListener("input", () => {
+            const renderSuggestions = () => {
                 const val = input.value.trim().toLowerCase();
                 sug.innerHTML = "";
+                let matches;
                 if (!val) {
-                    sug.style.display = "none";
-                    if (hidden) hidden.value = "";
-                    renderAddressChoices(null);
-                    return;
+                    matches = clientes.slice(0, 15);
+                } else {
+                    matches = clientes.filter(c => {
+                        const name = (c.name || '').toLowerCase();
+                        const code = (c.clientCode || c.id || '').toLowerCase();
+                        const phone = (c.phone || '').toLowerCase();
+                        const addrsStr = (Array.isArray(c.addresses) ? c.addresses.join(' ') : (c.address || '')).toLowerCase();
+                        return name.includes(val) || code.includes(val) || phone.includes(val) || addrsStr.includes(val);
+                    });
                 }
-                const matches = clientes.filter(c => (c.name || "").toLowerCase().includes(val));
+
                 if (matches.length === 0) {
                     sug.style.display = "none";
                     return;
                 }
+
                 matches.forEach(c => {
                     const div = document.createElement("div");
                     div.className = "autocomplete-suggestion";
-                    div.innerHTML = `<strong>${c.name}</strong> <span style="font-size: 11px; opacity: 0.6;">(${c.address || "Sin dir"})</span>`;
-                    div.onclick = () => {
+                    const codeBadge = c.clientCode ? `<span style="color: var(--color-blue); font-size: 11px; font-weight: 700; margin-left: 6px;">[${c.clientCode}]</span>` : '';
+                    const addrPreview = Array.isArray(c.addresses) && c.addresses.length > 0 ? c.addresses[0] : (c.address || "Sin dir");
+                    div.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${c.name}</strong> ${codeBadge}
+                                <div style="font-size: 11px; opacity: 0.7; margin-top: 2px;">📍 ${addrPreview}</div>
+                            </div>
+                        </div>
+                    `;
+                    div.onmousedown = (e) => e.preventDefault();
+                    div.onpointerdown = (e) => e.preventDefault();
+                    div.onclick = (e) => {
+                        e.stopPropagation();
                         input.value = c.name;
                         if (hidden) hidden.value = c.id;
                         sug.style.display = "none";
@@ -2385,6 +2409,41 @@
                     sug.appendChild(div);
                 });
                 sug.style.display = "block";
+            };
+
+            input.addEventListener("input", () => {
+                renderSuggestions();
+                const val = input.value.trim().toLowerCase();
+                if (val) {
+                    const exact = clientes.find(c => 
+                        (c.name && c.name.toLowerCase() === val) || 
+                        (c.clientCode && c.clientCode.toLowerCase() === val)
+                    );
+                    if (exact) {
+                        if (hidden) hidden.value = exact.id;
+                        renderAddressChoices(exact);
+                    }
+                }
+            });
+            input.addEventListener("focus", renderSuggestions);
+            input.addEventListener("click", renderSuggestions);
+
+            input.addEventListener("blur", () => {
+                setTimeout(() => {
+                    const val = input.value.trim().toLowerCase();
+                    if (val) {
+                        const matched = clientes.find(c => 
+                            (c.name && c.name.toLowerCase() === val) || 
+                            (c.clientCode && c.clientCode.toLowerCase() === val) ||
+                            (c.id && c.id.toLowerCase() === val)
+                        ) || clientes.find(c => c.name && c.name.toLowerCase().startsWith(val));
+                        if (matched) {
+                            input.value = matched.name;
+                            if (hidden) hidden.value = matched.id;
+                            renderAddressChoices(matched, document.getElementById("pdig-domicilio")?.value || "");
+                        }
+                    }
+                }, 200);
             });
 
             document.addEventListener("click", (e) => {
@@ -2507,6 +2566,7 @@
 
         // 14. MODAL APERTURA / CIERRE / EDICIÓN / ORDENES
         window.openPlanillaDigitalModalCentered = function() {
+            cargarDatos();
             const modal = document.getElementById("modalNuevaPlanillaDigital");
             if (!modal) return;
             document.getElementById("pdig-planilla-id").value = "";
@@ -2527,6 +2587,21 @@
         };
 
         window.closePlanillaDigitalModal = function() {
+            isSavingPlanilla = false;
+            const submitBtn = document.getElementById("btnSubmitPlanillaDigital");
+            const draftBtn = document.getElementById("btnDraftPlanillaDigital");
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+                submitBtn.innerHTML = '📤 Enviar al Administrador';
+            }
+            if (draftBtn) {
+                draftBtn.disabled = false;
+                draftBtn.style.opacity = '1';
+                draftBtn.style.cursor = 'pointer';
+                draftBtn.innerHTML = '💾 Guardar Borrador';
+            }
             document.getElementById("modalNuevaPlanillaDigital").classList.remove("show");
         };
 
@@ -2882,8 +2957,20 @@
         };
 
         // 15. SUBMIT DEL FORMULARIO DE PLANILLA
+        let isSavingPlanilla = false;
+
         document.getElementById("planillaDigitalForm")?.addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (isSavingPlanilla) {
+                console.warn("Prevención de envío doble: formulario ya en proceso de guardado.");
+                return;
+            }
+
+            const submitBtn = document.getElementById("btnSubmitPlanillaDigital");
+            const draftBtn = document.getElementById("btnDraftPlanillaDigital");
+            const originalSubmitHtml = submitBtn ? submitBtn.innerHTML : '📤 Enviar al Administrador';
+            const originalDraftHtml = draftBtn ? draftBtn.innerHTML : '💾 Guardar Borrador';
+
             const submitter = e.submitter ? e.submitter.value : "Enviada";
             const statusVal = submitter === "Borrador" ? "Borrador" : "Enviada";
 
@@ -2898,6 +2985,43 @@
 
             const checkedTechs = Array.from(document.querySelectorAll(".pdig-tech-cb:checked")).map(cb => cb.value);
             const dateDisplay = formatDateToAR(fechaVal);
+
+            // Detección estricta de envío duplicado en los últimos 15 segundos
+            if (!planillaId && statusVal !== "Borrador") {
+                const nowTs = Date.now();
+                const duplicate = planillas.find(p => 
+                    p &&
+                    p.client === clienteVal &&
+                    p.date === dateDisplay &&
+                    p.horaEntrada === horaEntrada &&
+                    p.horaSalida === horaSalida &&
+                    p.address === (domicilioVal || "Sin especificar") &&
+                    (nowTs - new Date(p.timestamp || 0).getTime() < 15000)
+                );
+                if (duplicate) {
+                    console.warn("Doble envío detectado y cancelado:", duplicate.pdtCode || duplicate.id);
+                    closePlanillaDigitalModal();
+                    showToast(`Esta planilla ya fue registrada exitosamente (${duplicate.pdtCode || duplicate.id})`, "info");
+                    return;
+                }
+            }
+
+            try {
+                isSavingPlanilla = true;
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.7';
+                    submitBtn.style.cursor = 'not-allowed';
+                    submitBtn.innerHTML = `
+                        <svg style="animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
+                        <span>Enviando...</span>
+                    `;
+                }
+                if (draftBtn) {
+                    draftBtn.disabled = true;
+                    draftBtn.style.opacity = '0.7';
+                    draftBtn.style.cursor = 'not-allowed';
+                }
 
             // Materiales del formulario
             const matList = [];
@@ -3156,6 +3280,24 @@
             } catch (err) {
                 console.warn("Aviso al guardar en Firestore:", err);
             }
+            } catch (submitErr) {
+                console.error("Error al guardar planilla:", submitErr);
+                showToast("Error al guardar planilla: " + submitErr.message, "error");
+            } finally {
+                isSavingPlanilla = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                    submitBtn.innerHTML = originalSubmitHtml;
+                }
+                if (draftBtn) {
+                    draftBtn.disabled = false;
+                    draftBtn.style.opacity = '1';
+                    draftBtn.style.cursor = 'pointer';
+                    draftBtn.innerHTML = originalDraftHtml;
+                }
+            }
         });
 
         // Receptor de mensajes postMessage desde ordenes y la ventana principal
@@ -3163,6 +3305,9 @@
             if (!event.data) return;
             if (event.data.type === 'OPEN_PLANILLA_FOR_ORDER' && event.data.orderId) {
                 window.openPlanillaForOrder(event.data.orderId);
+            }
+            if (['CLIENT_UPDATED', 'CLIENT_DELETED', 'ORDER_UPDATED', 'ORDER_COMPLETED', 'COLLABORATOR_UPDATED'].includes(event.data.type)) {
+                cargarDatos();
             }
         });
 
