@@ -224,6 +224,11 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             body { padding: 14px; }
             .clients-header-card { flex-direction: column; align-items: stretch; }
@@ -313,7 +318,7 @@
             <table class="custom-table">
                 <thead>
                     <tr>
-                        <th>ID / Código</th>
+                        <th>ID / Código <span style="font-size:11px; color:var(--color-blue); margin-left:4px;" title="Orden descendente: último al primero">▼</span></th>
                         <th>Nombre / Razón Social</th>
                         <th>Domicilio(s)</th>
                         <th>Teléfono</th>
@@ -344,26 +349,34 @@
             <form id="formNuevoClienteModal" onsubmit="handleSaveClientForm(event)" style="display: flex; flex-direction: column; gap: 15px;">
                 <input type="hidden" id="modal-client-id-edit" value="">
 
-                <div class="input-group" style="margin: 0;">
-                    <label style="font-size: 13px; font-weight: 600;">Nombre o Razón Social *</label>
-                    <input type="text" id="modal-client-name" required placeholder="Ej: Supermercado Norte / Juan Pérez" style="width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px;">
+                    <div class="input-group" style="margin: 0;">
+                        <label style="font-size: 13px; font-weight: 600;">Código</label>
+                        <input type="text" id="modal-client-code" placeholder="CLI-0001" readonly style="width: 100%; padding: 10px; background: rgba(0, 180, 216, 0.08); border: 1px solid var(--color-blue); color: var(--color-blue); font-weight: 700; border-radius: 6px; font-family: monospace; outline: none;" title="Código autogenerado para el cliente">
+                    </div>
+                    <div class="input-group" style="margin: 0;">
+                        <label style="font-size: 13px; font-weight: 600;">Nombre o Razón Social <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="modal-client-name" required placeholder="Ej: Supermercado Norte / Juan Pérez" style="width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                    </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div class="input-group" style="margin: 0;">
-                        <label style="font-size: 13px; font-weight: 600;">Teléfono de Contacto</label>
-                        <input type="text" id="modal-client-phone" placeholder="Ej: 3804-123456" style="width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                        <label style="font-size: 13px; font-weight: 600;">Teléfono de Contacto <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="modal-client-phone" required placeholder="Ej: 3804-123456" style="width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
                     </div>
                     <div class="input-group" style="margin: 0;">
-                        <label style="font-size: 13px; font-weight: 600;">CUIT / DNI</label>
-                        <input type="text" id="modal-client-cuit" placeholder="Ej: 20-12345678-9" style="width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
+                        <label style="font-size: 13px; font-weight: 600;">CUIT / DNI <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="modal-client-cuit" required placeholder="Ej: 20-12345678-9" style="width: 100%; padding: 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px;">
                     </div>
                 </div>
 
                 <div class="input-group" style="margin: 0;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <label style="font-size: 13px; font-weight: 600; margin: 0;">Domicilios y Ubicaciones Maps</label>
-                        <button type="button" onclick="addClientAddressRow()" style="background: rgba(0, 180, 216, 0.15); border: 1px solid var(--color-blue); color: var(--color-blue); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer;">+ Agregar Domicilio</button>
+                        <label style="font-size: 13px; font-weight: 600; margin: 0;">Domicilio(s) y Ubicaciones Maps <span style="color: #ef4444;">*</span></label>
+                        <button type="button" onclick="addClientAddressRow()" style="background: rgba(0, 180, 216, 0.15); border: 1px solid var(--color-blue); color: var(--color-blue); padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                            <span>+ Agregar Domicilio</span>
+                        </button>
                     </div>
                     <div id="clientAddressesContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
                         <!-- Filas dinámicas -->
@@ -377,7 +390,9 @@
 
                 <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
                     <button type="button" onclick="closeNewClientModal()" class="save-btn" style="width: auto; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-color); margin: 0; padding: 10px 18px;">Cancelar</button>
-                    <button type="submit" class="save-btn" style="width: auto; margin: 0; padding: 10px 22px; background: var(--color-blue); color: #000; font-weight: 700;">Guardar Cliente</button>
+                    <button type="submit" id="btnSubmitSaveClient" class="save-btn" style="width: auto; margin: 0; padding: 10px 22px; background: var(--color-blue); color: #000; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+                        <span>Guardar Cliente</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -468,8 +483,6 @@
 
         // 5. HELPER GOOGLE MAPS
         function getGoogleMapsUrl(address, clientOrMapsUrl) {
-            if (!address && !clientOrMapsUrl) return '';
-
             let directUrl = '';
             if (typeof clientOrMapsUrl === 'string' && clientOrMapsUrl.trim()) {
                 directUrl = clientOrMapsUrl.trim();
@@ -488,26 +501,105 @@
                 }
             }
 
-            if (directUrl) {
-                if (/^https?:\/\//i.test(directUrl)) return directUrl;
-                if (/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(directUrl)) {
-                    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(directUrl)}`;
+            function normalizeMapTarget(target) {
+                if (!target) return '';
+                let str = target.trim();
+                if (/^https?:\/\//i.test(str)) {
+                    return str;
                 }
-                return directUrl;
+                if (/^(www\.)?(maps\.google|maps\.app\.goo\.gl|goo\.gl\/maps|google\.[a-z.]+\/maps)/i.test(str)) {
+                    return 'https://' + str.replace(/^www\./, '');
+                }
+                if (/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(str)) {
+                    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(str.replace(/\s+/g, ''))}`;
+                }
+                if (str && str.toLowerCase() !== 'sin especificar' && str.toLowerCase() !== 'sin domicilio') {
+                    const hasCity = /la rioja|argentina/i.test(str);
+                    const query = hasCity ? str : `${str}, La Rioja, Argentina`;
+                    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+                }
+                return '';
             }
 
-            const cleanAddr = (address || '').trim();
-            if (/^https?:\/\//i.test(cleanAddr)) return cleanAddr;
-            if (/^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/.test(cleanAddr)) {
-                return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanAddr)}`;
+            if (directUrl) {
+                const res = normalizeMapTarget(directUrl);
+                if (res) return res;
             }
 
-            if (cleanAddr && cleanAddr.toLowerCase() !== 'sin especificar' && cleanAddr.toLowerCase() !== 'sin domicilio') {
-                const query = cleanAddr.toLowerCase().includes('la rioja') ? cleanAddr : `${cleanAddr}, La Rioja`;
-                return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+            if (address) {
+                const res = normalizeMapTarget(address);
+                if (res) return res;
             }
 
             return '';
+        }
+
+        // 5.1 CÓDIGO SECUENCIAL Y ORDENAMIENTO DE CLIENTES
+        function getClientCodeNumber(c) {
+            if (!c) return 0;
+            if (c.clientCode) {
+                const m = String(c.clientCode).match(/\d+/);
+                if (m) {
+                    const n = parseInt(m[0], 10);
+                    if (!isNaN(n) && n < 1000000) return n;
+                }
+            }
+            if (c.id && /^cli-\d{1,6}$/i.test(c.id)) {
+                const m = String(c.id).match(/\d+/);
+                if (m) {
+                    const n = parseInt(m[0], 10);
+                    if (!isNaN(n)) return n;
+                }
+            }
+            return 0;
+        }
+
+        function getClientTimestamp(c) {
+            if (!c) return 0;
+            if (c.createdAt) {
+                const t = new Date(c.createdAt).getTime();
+                if (!isNaN(t) && t > 0) return t;
+            }
+            if (c.updatedAt) {
+                const t = new Date(c.updatedAt).getTime();
+                if (!isNaN(t) && t > 0) return t;
+            }
+            if (c.id) {
+                const match = String(c.id).match(/\d{10,}/);
+                if (match) {
+                    const t = parseInt(match[0], 10);
+                    if (!isNaN(t) && t > 0) return t;
+                }
+            }
+            return 0;
+        }
+
+        function compareClientsDescending(a, b) {
+            const numA = getClientCodeNumber(a);
+            const numB = getClientCodeNumber(b);
+            if (numA > 0 && numB > 0 && numA !== numB) {
+                return numB - numA; // Descendente: desde el último cliente al primero (CLI-0005, CLI-0004...)
+            }
+            if (numA > 0 && numB === 0) return -1;
+            if (numB > 0 && numA === 0) return 1;
+
+            const timeA = getClientTimestamp(a);
+            const timeB = getClientTimestamp(b);
+            if (timeA !== timeB) {
+                return timeB - timeA; // Descendente por fecha
+            }
+
+            return (b.name || '').localeCompare(a.name || '');
+        }
+
+        function getNextClientCode() {
+            let maxNum = 0;
+            const list = (typeof clientes !== 'undefined' && Array.isArray(clientes)) ? clientes : [];
+            list.forEach(c => {
+                const num = getClientCodeNumber(c);
+                if (num > maxNum) maxNum = num;
+            });
+            return `CLI-${String(maxNum + 1).padStart(4, '0')}`;
         }
 
         // 6. RENDERIZAR TABLA DE CLIENTES
@@ -526,6 +618,9 @@
                     addrsStr.includes(searchVal) ||
                     (c.phone || '').toLowerCase().includes(searchVal);
             });
+
+            // Orden descendente: desde el último cliente hasta el primer cliente
+            filteredClients.sort(compareClientsDescending);
 
             // Actualizar contadores
             document.getElementById('statTotalClients').textContent = clientes.length;
@@ -588,6 +683,8 @@
         }
 
         // 7. MODAL NUEVO / EDITAR CLIENTE
+        let isSavingClient = false;
+
         window.openNewClientModal = function(clientId = null) {
             const modal = document.getElementById('modalNuevoClienteCentered');
             const title = document.getElementById('clientModalTitle');
@@ -598,26 +695,45 @@
             if (form) form.reset();
             if (container) container.innerHTML = '';
 
+            const submitBtn = document.getElementById('btnSubmitSaveClient');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+                submitBtn.innerHTML = '<span>Guardar Cliente</span>';
+            }
+            isSavingClient = false;
+
             if (clientId) {
                 const c = clientes.find(item => item.id === clientId);
                 if (c) {
                     if (title) title.innerHTML = `<span>Editar Cliente: ${c.name}</span>`;
                     document.getElementById('modal-client-id-edit').value = c.id;
+                    const code = c.clientCode || (c.id && (c.id.toUpperCase().startsWith('CLI-') || c.id.toLowerCase().startsWith('cli-')) ? c.id.toUpperCase() : '') || 'CLI-0000';
+                    document.getElementById('modal-client-code').value = code;
                     document.getElementById('modal-client-name').value = c.name || '';
                     document.getElementById('modal-client-phone').value = c.phone || '';
                     document.getElementById('modal-client-cuit').value = c.cuit || '';
                     document.getElementById('modal-client-notes').value = c.notes || '';
 
-                    const addrs = Array.isArray(c.addresses) && c.addresses.length > 0 ? c.addresses : [c.address || ''];
+                    const rawAddrs = Array.isArray(c.addresses) && c.addresses.length > 0 ? c.addresses : [c.address || ''];
                     const maps = Array.isArray(c.addressesMaps) ? c.addressesMaps : [];
-                    addrs.forEach((a, i) => {
-                        const mLink = (c.addressMapsLinks && c.addressMapsLinks[a]) ? c.addressMapsLinks[a] : (maps[i] || '');
-                        addClientAddressRow(a, mLink);
-                    });
+                    const realAddrs = rawAddrs.filter(a => a && a.toLowerCase() !== 'sin especificar' && a.toLowerCase() !== 'sin domicilio');
+
+                    if (realAddrs.length > 0) {
+                        realAddrs.forEach(a => {
+                            const idx = rawAddrs.indexOf(a);
+                            const mLink = (c.addressMapsLinks && c.addressMapsLinks[a]) ? c.addressMapsLinks[a] : (maps[idx] || '');
+                            addClientAddressRow(a, mLink);
+                        });
+                    } else {
+                        addClientAddressRow('', '');
+                    }
                 }
             } else {
                 if (title) title.innerHTML = `<span>Nuevo Cliente</span>`;
                 document.getElementById('modal-client-id-edit').value = '';
+                document.getElementById('modal-client-code').value = getNextClientCode();
                 addClientAddressRow('', '');
             }
 
@@ -625,6 +741,14 @@
         };
 
         window.closeNewClientModal = function() {
+            isSavingClient = false;
+            const submitBtn = document.getElementById('btnSubmitSaveClient');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+                submitBtn.innerHTML = '<span>Guardar Cliente</span>';
+            }
             const modal = document.getElementById('modalNuevoClienteCentered');
             if (modal) modal.classList.remove('show');
         };
@@ -633,14 +757,20 @@
             const container = document.getElementById('clientAddressesContainer');
             if (!container) return;
 
+            const isFirst = container.children.length === 0;
             const div = document.createElement('div');
             div.className = 'client-address-card';
 
             div.innerHTML = `
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <span style="font-size: 14px; color: var(--color-blue); flex-shrink: 0;" title="Dirección física">📍</span>
-                    <input type="text" class="modal-client-address-item" placeholder="Dirección / Calle y Altura (Ej: Av. San Martín 150)" style="flex: 1; padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 13px;">
-                    <button type="button" class="btn-remove-addr-row" title="Eliminar este domicilio" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 6px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; flex-shrink: 0;">✕</button>
+                    <input type="text" class="modal-client-address-item" ${isFirst ? 'required' : ''} placeholder="${isFirst ? 'Dirección / Calle y Altura * (Obligatorio)' : 'Dirección secundaria / Sucursal'}" style="flex: 1; padding: 8px 10px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 6px; font-size: 13px;">
+                    <button type="button" class="btn-remove-addr-row" title="Eliminar este domicilio" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); padding: 7px 11px; border-radius: 6px; font-weight: bold; cursor: pointer; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <span style="font-size: 14px; opacity: 0.85; flex-shrink: 0;" title="Link o coordenadas de Google Maps">🗺️</span>
@@ -659,23 +789,35 @@
             if (addrInput) addrInput.value = val || '';
             if (mapsInput) mapsInput.value = mapsVal || '';
 
-            btnRemove.addEventListener('click', () => div.remove());
+            btnRemove.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                div.remove();
+                if (container.children.length === 0) {
+                    addClientAddressRow('', '');
+                }
+            });
 
-            btnMaps.addEventListener('click', () => {
+            btnMaps.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 const addr = addrInput ? addrInput.value.trim() : '';
                 const mapLink = mapsInput ? mapsInput.value.trim() : '';
                 const url = getGoogleMapsUrl(addr, mapLink);
-                if (url) window.open(url, '_blank', 'noopener,noreferrer');
-                else showToast("Ingresa una dirección o link para abrir Maps", "info");
+                if (url) {
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                } else {
+                    showToast("Ingresa una dirección o enlace de Google Maps para abrir", "warning");
+                }
             });
 
             if (addrInput && mapsInput) {
                 addrInput.addEventListener('input', () => {
                     const text = addrInput.value.trim();
-                    if (/^https?:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|www\.google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)/i.test(text)) {
+                    if (/^(https?:\/\/)?(maps\.app\.goo\.gl|goo\.gl\/maps|www\.google\.[a-z.]+\/maps|maps\.google\.[a-z.]+)/i.test(text)) {
                         if (!mapsInput.value.trim()) {
-                            mapsInput.value = text;
-                            showToast("🔗 Link de Google Maps asignado", "info");
+                            mapsInput.value = text.startsWith('http') ? text : ('https://' + text);
+                            showToast("🔗 Link de Google Maps detectado y asignado", "info");
                         }
                     }
                 });
@@ -686,12 +828,34 @@
 
         window.handleSaveClientForm = async function(event) {
             event.preventDefault();
+            if (isSavingClient) return;
 
-            const editId = document.getElementById('modal-client-id-edit').value;
-            const name = document.getElementById('modal-client-name').value.trim();
-            const cuit = document.getElementById('modal-client-cuit').value.trim();
-            const phone = document.getElementById('modal-client-phone').value.trim();
-            const notes = document.getElementById('modal-client-notes').value.trim();
+            const submitBtn = document.getElementById('btnSubmitSaveClient');
+            const originalBtnText = submitBtn ? submitBtn.innerHTML : '<span>Guardar Cliente</span>';
+
+            const editId = (document.getElementById('modal-client-id-edit')?.value || '').trim();
+            const code = (document.getElementById('modal-client-code')?.value || '').trim() || getNextClientCode();
+            const name = (document.getElementById('modal-client-name')?.value || '').trim();
+            const cuit = (document.getElementById('modal-client-cuit')?.value || '').trim();
+            const phone = (document.getElementById('modal-client-phone')?.value || '').trim();
+            const notes = (document.getElementById('modal-client-notes')?.value || '').trim();
+
+            // 1. VALIDACIÓN ESTRICTA DE CAMPOS OBLIGATORIOS
+            if (!name) {
+                showToast("El Nombre o Razón Social es obligatorio.", "warning");
+                document.getElementById('modal-client-name')?.focus();
+                return;
+            }
+            if (!cuit) {
+                showToast("El CUIT o DNI es obligatorio.", "warning");
+                document.getElementById('modal-client-cuit')?.focus();
+                return;
+            }
+            if (!phone) {
+                showToast("El Teléfono de contacto es obligatorio.", "warning");
+                document.getElementById('modal-client-phone')?.focus();
+                return;
+            }
 
             const cards = document.querySelectorAll('#clientAddressesContainer .client-address-card');
             const addresses = [];
@@ -706,7 +870,7 @@
 
                 if (aVal || mVal) {
                     const finalAddr = aVal || (mVal ? 'Ubicación GPS' : '');
-                    if (finalAddr) {
+                    if (finalAddr && finalAddr.toLowerCase() !== 'sin especificar' && finalAddr.toLowerCase() !== 'sin domicilio') {
                         addresses.push(finalAddr);
                         addressesMaps.push(mVal || '');
                         if (mVal) addressMapsLinks[finalAddr] = mVal;
@@ -714,38 +878,95 @@
                 }
             });
 
-            if (!addresses.includes("Sin especificar")) {
-                addresses.push("Sin especificar");
-                addressesMaps.push("");
+            if (addresses.length === 0) {
+                showToast("El Domicilio es obligatorio. Por favor ingresa una dirección física.", "warning");
+                const firstAddr = document.querySelector('#clientAddressesContainer .modal-client-address-item');
+                if (firstAddr) firstAddr.focus();
+                return;
             }
 
+            // Preparar objeto de cliente
+            const finalId = editId || ('cli-' + Date.now());
             const clientData = {
+                id: finalId,
+                clientCode: code,
                 name: name,
                 cuit: cuit,
                 phone: phone,
                 notes: notes,
-                address: addresses[0] || 'Sin especificar',
+                address: addresses[0],
                 addresses: addresses,
                 addressesMaps: addressesMaps,
-                addressMapsLinks: addressMapsLinks
+                addressMapsLinks: addressMapsLinks,
+                updatedAt: new Date().toISOString()
             };
 
             try {
-                if (editId) {
-                    clientData.id = editId;
-                    await db.collection('clientes').doc(editId).update(clientData);
-                    showToast("Cliente actualizado correctamente", "success");
-                } else {
-                    const docRef = await db.collection('clientes').add(clientData);
-                    clientData.id = docRef.id;
-                    showToast("Cliente creado con éxito", "success");
+                isSavingClient = true;
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.7';
+                    submitBtn.style.cursor = 'not-allowed';
+                    submitBtn.innerHTML = `
+                        <svg style="animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 6px;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
+                        <span>Guardando...</span>
+                    `;
                 }
 
+                // 2. Guardar inmediatamente en memoria y localStorage para que la UI responda instantáneamente
+                if (editId) {
+                    const idx = clientes.findIndex(c => c.id === editId);
+                    if (idx !== -1) {
+                        clientes[idx] = { ...clientes[idx], ...clientData };
+                    } else {
+                        clientes.unshift(clientData);
+                    }
+                } else {
+                    clientes.unshift(clientData);
+                }
+
+                clientes.sort(compareClientsDescending);
+                localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
+                renderClientsTable();
                 closeNewClientModal();
                 window.parent.postMessage({ type: 'CLIENT_UPDATED' }, '*');
+
+                // 3. Sincronizar en la nube con Firestore usando .set con { merge: true }
+                if (typeof db !== 'undefined' && db) {
+                    try {
+                        if (editId) {
+                            await db.collection('clientes').doc(editId).set(clientData, { merge: true });
+                            showToast(`Cliente actualizado correctamente (${code})`, "success");
+                        } else {
+                            const docRef = await db.collection('clientes').add(clientData);
+                            if (docRef && docRef.id && docRef.id !== finalId) {
+                                const oldId = clientData.id;
+                                clientData.id = docRef.id;
+                                const idx = clientes.findIndex(c => c.id === oldId);
+                                if (idx !== -1) clientes[idx].id = docRef.id;
+                                localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
+                                renderClientsTable();
+                            }
+                            showToast(`Cliente creado con éxito (${code})`, "success");
+                        }
+                    } catch (cloudErr) {
+                        console.warn("Aviso: Sincronización en la nube diferida:", cloudErr);
+                        showToast(`Cliente guardado localmente (${code})`, "success");
+                    }
+                } else {
+                    showToast(`Cliente guardado correctamente (${code})`, "success");
+                }
             } catch(err) {
-                console.error("Error guardando cliente:", err);
-                showToast("Error al guardar cliente: " + err.message, "error");
+                console.error("Error al procesar cliente:", err);
+                showToast("Error: " + err.message, "error");
+            } finally {
+                isSavingClient = false;
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                    submitBtn.innerHTML = originalBtnText;
+                }
             }
         };
 
@@ -824,6 +1045,7 @@
             if (cachedClients) {
                 try {
                     clientes = JSON.parse(cachedClients) || [];
+                    clientes.sort(compareClientsDescending);
                     renderClientsTable();
                 } catch(e) {}
             }
@@ -841,6 +1063,7 @@
                     data.id = doc.id;
                     list.push(data);
                 });
+                list.sort(compareClientsDescending);
                 clientes = list;
                 localStorage.setItem('electrofrio_clients', JSON.stringify(clientes));
                 renderClientsTable();

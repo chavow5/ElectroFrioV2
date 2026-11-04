@@ -2559,12 +2559,15 @@
 
                 let entText = `<span style="color: #ef4444; font-size: 12px;">⚠️ Falta Entrada</span>`;
                 if (entradas.length === 1) {
-                    const isGps = entradas[0].gps && entradas[0].gps.verified;
+                    const isGps = entradas[0].gps && entradas[0].gps.verified && !entradas[0].gps.manual && !entradas[0].gps.edited;
                     entText = `<span style="color: #10b981; font-weight: 600;">${isGps ? '📍' : '📌'} ${entradas[0].time}</span>`;
                 } else if (entradas.length > 1) {
-                    entText = entradas.map((e, idx) => {
-                        const isGps = e.gps && e.gps.verified;
-                        return `<div style="font-size: 12px; margin-bottom: 2px;"><strong style="color: #38bdf8;">${idx + 1}ª:</strong> <span style="color: #10b981; font-weight: 600;">${isGps ? '📍' : '📌'} ${e.time}</span></div>`;
+                    // El último horario arriba, el primer horario abajo
+                    const displayEntradas = [...entradas].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+                    entText = displayEntradas.map((e) => {
+                        const isGps = e.gps && e.gps.verified && !e.gps.manual && !e.gps.edited;
+                        const turnNum = entradas.indexOf(e) + 1;
+                        return `<div style="font-size: 12px; margin-bottom: 2px;"><strong style="color: #38bdf8;">${turnNum}ª:</strong> <span style="color: #10b981; font-weight: 600;">${isGps ? '📍' : '📌'} ${e.time}</span></div>`;
                     }).join('');
                 }
 
@@ -2572,15 +2575,16 @@
                 if (salidas.length === 0 && entradas.length > 0) {
                     salText = `<span style="color: #fbbf24; font-size: 12px; font-weight: 600;">⏳ Falta Salida</span>`;
                 } else if (salidas.length === 1 && entradas.length <= 1) {
-                    const isGps = salidas[0].gps && salidas[0].gps.verified;
+                    const isGps = salidas[0].gps && salidas[0].gps.verified && !salidas[0].gps.manual && !salidas[0].gps.edited;
                     salText = `<span style="color: #f87171; font-weight: 600;">${isGps ? '📍' : '📌'} ${salidas[0].time}</span>`;
                 } else if (salidas.length > 0 || entradas.length > 1) {
                     const maxShifts = Math.max(entradas.length, salidas.length);
                     const lines = [];
-                    for (let sIdx = 0; sIdx < maxShifts; sIdx++) {
+                    // El último horario arriba, el primer horario abajo
+                    for (let sIdx = maxShifts - 1; sIdx >= 0; sIdx--) {
                         const sal = salidas[sIdx];
                         if (sal) {
-                            const isGps = sal.gps && sal.gps.verified;
+                            const isGps = sal.gps && sal.gps.verified && !sal.gps.manual && !sal.gps.edited;
                             lines.push(`<div style="font-size: 12px; margin-bottom: 2px;"><strong style="color: #f43f5e;">${sIdx + 1}ª:</strong> <span style="color: #f87171; font-weight: 600;">${isGps ? '📍' : '📌'} ${sal.time}</span></div>`);
                         } else {
                             lines.push(`<div style="font-size: 12px; margin-bottom: 2px;"><strong style="color: #f43f5e;">${sIdx + 1}ª:</strong> <span style="color: #fbbf24; font-size: 11px; font-weight: 600;">⏳ Falta Salida</span></div>`);
@@ -2797,11 +2801,19 @@
                             shifts.push(curShift);
                         }
 
+                        // Asignar numeración secuencial original (1º, 2º Turno...)
                         shifts.forEach((shift, sIdx) => {
+                            shift.turnNum = sIdx + 1;
+                        });
+
+                        // Ordenar para mostrar el último horario/turno arriba y el primer horario abajo
+                        const displayShifts = [...shifts].reverse();
+
+                        displayShifts.forEach((shift) => {
                             const tr = document.createElement('tr');
                             const collabName = shift.collabName || 'Sin Nombre';
                             const safeName = collabName.replace(/'/g, "\\'");
-                            const turnNum = sIdx + 1;
+                            const turnNum = shift.turnNum;
                             const turnSuffix = shifts.length > 1 ? ` (${turnNum}º Turno)` : '';
 
                             const inId = shift.entrada ? `'${shift.entrada.id}'` : 'null';
@@ -2849,11 +2861,13 @@
                                 ` : `<span class="badge-missing-simple out">⏳ En Turno (Pendiente)</span>`;
                             }
 
-                            // 3. CELDA GPS / UBICACIÓN (Simple y limpia, sin botones de duración ni In/Out)
-                            const isGpsIn = shift.entrada && shift.entrada.gps && shift.entrada.gps.verified;
-                            const isGpsOut = shift.salida && shift.salida.gps && shift.salida.gps.verified;
+                            // 3. CELDA GPS / UBICACIÓN: Si fue editado o cargado manualmente, se muestra como Manual
+                            const isGpsIn = shift.entrada && shift.entrada.gps && shift.entrada.gps.verified && !shift.entrada.gps.manual && !shift.entrada.gps.edited;
+                            const isGpsOut = shift.salida && shift.salida.gps && shift.salida.gps.verified && !shift.salida.gps.manual && !shift.salida.gps.edited;
                             let gpsCellHtml = '';
-                            if (isGpsIn || isGpsOut) {
+                            const hasPunches = shift.entrada || shift.salida;
+                            const allVerified = (!shift.entrada || isGpsIn) && (!shift.salida || isGpsOut) && hasPunches && (isGpsIn || isGpsOut);
+                            if (allVerified) {
                                 gpsCellHtml = `<span class="badge-gps-verified">📍 GPS Verificado</span>`;
                             } else {
                                 gpsCellHtml = `<span class="badge-gps-manual">📌 Manual</span>`;
@@ -2893,12 +2907,12 @@
                     });
 
                 } else {
-                    // MODO INDIVIDUAL
+                    // MODO INDIVIDUAL: el último horario arriba, el primer horario abajo
                     dayGroup.records.sort((a, b) => {
                         const nameA = (a.name || '').toLowerCase();
                         const nameB = (b.name || '').toLowerCase();
                         if (nameA !== nameB) return nameA.localeCompare(nameB);
-                        return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
+                        return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
                     });
 
                     let lastCollabName = '';
@@ -2914,7 +2928,7 @@
 
                         const turnSuffix = (f._totalInDay > 1 || f._turnNumber > 1) ? ` (${f._turnNumber}º Turno)` : '';
                         const safeName = (f.name || '').replace(/'/g, "\\'");
-                        const isGps = f.gps && f.gps.verified && f.gps.lat && f.gps.lng;
+                        const isGps = f.gps && f.gps.verified && !f.gps.manual && !f.gps.edited && f.gps.lat && f.gps.lng;
 
                         let entCellHtml = '';
                         let salCellHtml = '';
@@ -3087,7 +3101,7 @@
             const body = document.getElementById('modalDetalleFichajeBody');
             if (!modal || !body) return;
 
-            const isGps = f.gps && f.gps.verified && f.gps.lat && f.gps.lng;
+            const isGps = f.gps && f.gps.verified && !f.gps.manual && !f.gps.edited && f.gps.lat && f.gps.lng;
             const mapsUrl = isGps ? `https://www.google.com/maps?q=${f.gps.lat},${f.gps.lng}` : '';
 
             body.innerHTML = `
@@ -3110,7 +3124,7 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); align-items: center;">
                         <span style="color: var(--text-secondary);">Método de Registro:</span>
-                        <span>${isGps ? '<span style="color: #10b981; font-weight: 700;">📍 Verificado por Satélite (GPS)</span>' : '<span style="color: #f59e0b; font-weight: 600;">📌 Registro Manual (Cargado en Administración)</span>'}</span>
+                        <span>${isGps ? '<span style="color: #10b981; font-weight: 700;">📍 Verificado por Satélite (GPS)</span>' : '<span style="color: #f59e0b; font-weight: 600;">📌 Registro Manual / Editado en Administración</span>'}</span>
                     </div>
                     ${f.observacion ? `
                     <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px; margin-top: 4px;">
@@ -3258,13 +3272,15 @@
                             foundIn.time = formattedInTime;
                             foundIn.timestamp = tsIn;
                             foundIn.observacion = obsVal;
+                            foundIn.gps = { manual: true, verified: false, edited: true };
                         }
                         if (typeof db !== 'undefined' && db) {
                             await db.collection('fichajes').doc(idIn).update({
                                 date: dateVal,
                                 time: formattedInTime,
                                 timestamp: tsIn,
-                                observacion: obsVal
+                                observacion: obsVal,
+                                gps: { manual: true, verified: false, edited: true }
                             }).catch(() => {});
                         }
                     } else {
@@ -3277,7 +3293,7 @@
                             timestamp: tsIn,
                             type: 'Entrada',
                             observacion: obsVal,
-                            gps: { lat: 0, lng: 0, verified: false, manual: true }
+                            gps: { lat: 0, lng: 0, verified: false, manual: true, edited: true }
                         };
                         fichajes.unshift({ id: newInId, ...newInData });
                         if (typeof db !== 'undefined' && db) {
@@ -3301,13 +3317,15 @@
                             foundOut.time = formattedOutTime;
                             foundOut.timestamp = tsOut;
                             foundOut.observacion = obsVal;
+                            foundOut.gps = { manual: true, verified: false, edited: true };
                         }
                         if (typeof db !== 'undefined' && db) {
                             await db.collection('fichajes').doc(idOut).update({
                                 date: dateVal,
                                 time: formattedOutTime,
                                 timestamp: tsOut,
-                                observacion: obsVal
+                                observacion: obsVal,
+                                gps: { manual: true, verified: false, edited: true }
                             }).catch(() => {});
                         }
                     } else {
@@ -3320,7 +3338,7 @@
                             timestamp: tsOut,
                             type: 'Salida',
                             observacion: obsVal,
-                            gps: { lat: 0, lng: 0, verified: false, manual: true }
+                            gps: { lat: 0, lng: 0, verified: false, manual: true, edited: true }
                         };
                         fichajes.unshift({ id: newOutId, ...newOutData });
                         if (typeof db !== 'undefined' && db) {
@@ -3414,7 +3432,7 @@
                 timestampStr = new Date().toISOString();
             }
 
-            const gpsObj = { manual: true, verified: false };
+            const gpsObj = { manual: true, verified: false, edited: true };
             const obsVal = document.getElementById('fichaje-observacion') ? document.getElementById('fichaje-observacion').value.trim() : '';
             const submitBtn = document.getElementById('btnSubmitFichajeModal');
             submitBtn.disabled = true;
