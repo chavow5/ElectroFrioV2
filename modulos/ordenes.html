@@ -488,7 +488,7 @@
                 <span>Sin Coord:</span>
                 <strong id="statUncoordCount">0</strong>
             </div>
-            <div class="stat-pill pill-completed">
+            <div class="stat-pill pill-completed role-admin-only">
                 <span>Completadas:</span>
                 <strong id="statCompletedCount">0</strong>
             </div>
@@ -590,33 +590,6 @@
                     </tr>
                 </thead>
                 <tbody id="ordersFullTableBody">
-                    <!-- Dinámico -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- SECCIÓN DE HISTORIAL COMPLETADAS (SOLO COLABORADOR) -->
-    <div id="collabCompletedOrdersSection" class="content-card role-colaborador-only" style="margin-top: 20px;">
-        <div class="card-header" style="justify-content: space-between; align-items: center;">
-            <h3 class="card-title" style="display: flex; align-items: center; gap: 8px; margin: 0;">
-                <span>Historial de Mis Órdenes Completadas</span>
-                <span class="badge info" id="collabCompletedCountBadge">0</span>
-            </h3>
-        </div>
-        <div class="table-responsive" style="margin-top: 15px;">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>CLIENTE</th>
-                        <th>DIRECCIÓN</th>
-                        <th>TAREA</th>
-                        <th>ESTADO</th>
-                        <th>ACCIONES</th>
-                    </tr>
-                </thead>
-                <tbody id="collabCompletedOrdersBody">
                     <!-- Dinámico -->
                 </tbody>
             </table>
@@ -781,11 +754,11 @@
                 <button class="modal-close" onclick="closeDetailModal()">&times;</button>
             </div>
             <div class="detail-body" style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
-                <!-- Vista Colaborador (Lectura clara) -->
-                <div class="role-colaborador-only" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
+                <!-- Vista Colaborador: Solo Lectura y Acceso a Planilla (Los técnicos no modifican la orden) -->
+                <div id="collabOrderDetailView" class="role-colaborador-only" style="background: rgba(255,255,255,0.03); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;">
                     <div>
                         <span style="font-size: 11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Cliente</span>
-                        <div id="detail-client-name" style="font-size: 15px; font-weight:700; color: #fff;">-</div>
+                        <div id="detail-client-name" style="font-size: 15px; font-weight:700; color: #fff; margin-top: 2px;">-</div>
                     </div>
                     <div>
                         <span style="font-size: 11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Dirección</span>
@@ -795,12 +768,39 @@
                         </div>
                     </div>
                     <div>
+                        <span style="font-size: 11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Fecha y Horario Asignado</span>
+                        <div id="detail-datetime-collab" style="font-size: 13px; color: #fff; font-weight: 600; margin-top: 2px;">-</div>
+                    </div>
+                    <div>
                         <span style="font-size: 11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Descripción del Trabajo</span>
                         <div id="detail-type" style="font-size: 13px; white-space: pre-wrap; word-break: break-word; color: #e2e8f0; margin-top: 2px;">-</div>
                     </div>
+                    <div>
+                        <span style="font-size: 11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Estado del Trabajo</span>
+                        <div id="detail-status-collab-badge" style="margin-top: 4px;">-</div>
+                    </div>
+                    <div id="detail-collab-obs-wrap" style="display: none;">
+                        <span style="font-size: 11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase;">Observaciones del Servicio</span>
+                        <div id="detail-collab-obs" style="font-size: 12px; color: #cbd5e1; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 6px; margin-top: 4px; white-space: pre-wrap;">-</div>
+                    </div>
+
+                    <!-- Botón para Llenar o Ver Planilla de Trabajo -->
+                    <div id="collab-modal-planilla-box" style="margin-top: 4px; padding: 12px; border-radius: 8px; background-color: rgba(0, 191, 255, 0.12); border: 1px solid rgba(0, 191, 255, 0.3); color: #80d8ff; font-size: 12px;">
+                        <div id="collab-modal-planilla-text" style="font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            📋 Planilla de Trabajo Digital
+                        </div>
+                        <button type="button" class="save-btn" id="btnCollabModalOpenPlanilla" style="width: 100%; padding: 10px; font-size: 13px; background-color: var(--color-blue); color: #000; font-weight: 700; border-radius: 6px; cursor: pointer;">
+                            📋 + Llenar Planilla de Trabajo
+                        </button>
+                    </div>
+
+                    <button type="button" onclick="closeDetailModal()" style="width: 100%; padding: 10px; font-size: 13px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        Cerrar
+                    </button>
                 </div>
 
-                <form id="formEditarOrden" style="display:flex; flex-direction:column; gap:12px; margin-top:5px;">
+                <!-- Formulario Exclusivo para Administrador -->
+                <form id="formEditarOrden" class="role-admin-only" style="display:flex; flex-direction:column; gap:12px; margin-top:5px;">
                     <!-- Campos editables solo para Administrador -->
                     <div class="input-group role-admin-only">
                         <label for="detail-client-input">Cliente</label>
@@ -1012,6 +1012,10 @@
         applyTheme(localStorage.getItem('electrofrio_theme') || 'dark');
         window.addEventListener('storage', (e) => {
             if (e.key === 'electrofrio_theme') applyTheme(e.newValue);
+            if (e.key === 'electrofrio_role' || e.key === 'electrofrio_name') {
+                applyRoleVisibility();
+                renderOrdersFullTable();
+            }
             if (e.key === 'electrofrio_workorders') {
                 try {
                     ordenesTrabajo = JSON.parse(e.newValue) || [];
@@ -1090,6 +1094,11 @@
             if (titleEl) {
                 titleEl.textContent = role === 'Colaborador' ? 'Mis Órdenes Activas' : 'Órdenes Pendientes / Coordinadas';
             }
+
+            const optCompletado = document.querySelector('#orderStatusFilter option[value="Completado"]');
+            if (optCompletado) optCompletado.style.display = role === 'Administrador' ? '' : 'none';
+            const optSinCoord = document.querySelector('#orderStatusFilter option[value="SIN_COORDINAR"]');
+            if (optSinCoord) optSinCoord.style.display = role === 'Administrador' ? '' : 'none';
         }
 
         // 6. HELPERS DE FECHA Y HORA
@@ -1491,7 +1500,7 @@
             if (role === 'Colaborador') {
                 const myOrders = ordenesTrabajo.filter(o => isOrderAssignedToUser(o, currentName));
                 allActiveOrders = myOrders.filter(o => o.status !== 'Completado');
-                allCompletedOrders = myOrders.filter(o => o.status === 'Completado');
+                allCompletedOrders = []; // Colaborador NO ve historial ni órdenes completadas
             } else {
                 allActiveOrders = ordenesTrabajo.filter(o => o.status !== 'Completado');
                 allCompletedOrders = ordenesTrabajo.filter(o => o.status === 'Completado');
@@ -1517,11 +1526,14 @@
             const uncoordinatedBadge = document.getElementById('uncoordinatedCountBadge');
             if (uncoordinatedBadge) uncoordinatedBadge.textContent = ordenesSinCoordinar.length;
 
-            const completedOrdersToShow = window._mostrarHistorialCompleto
-                ? allCompletedOrders
-                : allCompletedOrders.filter(isWithinLast7Days);
+            const completedOrdersToShow = role === 'Colaborador'
+                ? []
+                : (window._mostrarHistorialCompleto
+                    ? allCompletedOrders
+                    : allCompletedOrders.filter(isWithinLast7Days));
 
-            document.getElementById('statCompletedCount').textContent = completedOrdersToShow.length;
+            const statCompletedEl = document.getElementById('statCompletedCount');
+            if (statCompletedEl) statCompletedEl.textContent = completedOrdersToShow.length;
 
             // Filtros de búsqueda en interfaz
             const searchVal = document.getElementById('orderSearchInput') ? document.getElementById('orderSearchInput').value.trim().toLowerCase() : '';
@@ -1630,7 +1642,7 @@
                 ` : `
                     <td data-label="ACCIONES">
                         <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap;">
-                            <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">${rowType === 'completado' ? 'Ver' : 'Ver / Estado'}</button>
+                            <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">Ver</button>
                             ${planillaBtnLabel}
                         </div>
                     </td>
@@ -1717,8 +1729,8 @@
                     filteredSinCoord.forEach(o => ordersFullBody.appendChild(renderRow(o, 'sinCoordinar')));
                 }
 
-                // 4. Sección Completados
-                if (filteredCompleted.length > 0) {
+                // 4. Sección Completados (Exclusivo Administrador)
+                if (role === 'Administrador' && filteredCompleted.length > 0) {
                     const isFull = !!window._mostrarHistorialCompleto;
                     const compHeaderTr = document.createElement('tr');
                     compHeaderTr.innerHTML = `
@@ -1740,47 +1752,6 @@
                     `;
                     ordersFullBody.appendChild(compHeaderTr);
                     filteredCompleted.forEach(o => ordersFullBody.appendChild(renderRow(o, 'completado')));
-                }
-            }
-
-            // Renderizar Historial para Colaborador en tarjeta inferior
-            if (role === 'Colaborador' && collabCompletedBody) {
-                collabCompletedBody.innerHTML = '';
-                if (collabCompletedBadge) collabCompletedBadge.textContent = filteredCompleted.length;
-
-                if (filteredCompleted.length === 0) {
-                    collabCompletedBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No hay órdenes completadas recientes.</td></tr>`;
-                } else {
-                    filteredCompleted.forEach(o => {
-                        const tr = document.createElement('tr');
-                        tr.style.cursor = 'pointer';
-                        tr.onclick = (e) => {
-                            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A') {
-                                openOrderDetailsModal(o.id);
-                            }
-                        };
-                        const badgeData = getBadgeInfo(o.status);
-                        const compCollabCObj = clientes.find(c => c.id === o.clientId || (c.name && c.name.toLowerCase() === (o.client || '').toLowerCase()));
-                        const compCollabMUrl = getGoogleMapsUrl(o.address, compCollabCObj);
-                        const compCollabAddrHtml = (compCollabMUrl && o.address && o.address !== 'Sin especificar' && o.address !== 'Sin domicilio')
-                            ? `<div style="display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap;"><span>${o.address}</span><a href="${compCollabMUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:2px; padding:2px 6px; background:rgba(0,180,216,0.15); border:1px solid var(--color-blue); color:var(--color-blue); border-radius:4px; font-size:11px; text-decoration:none; font-weight:600;" title="Abrir en Google Maps" onclick="event.stopPropagation();">🗺️ Maps</a></div>`
-                            : (o.address || 'Sin especificar');
-
-                        tr.innerHTML = `
-                            <td data-label="ID" style="font-weight:700; color: var(--color-blue);">${o.id}</td>
-                            <td data-label="CLIENTE" style="font-weight:600;">${o.client}</td>
-                            <td data-label="DIRECCIÓN">${compCollabAddrHtml}</td>
-                            <td data-label="TAREA">${o.type}</td>
-                            <td data-label="ESTADO"><span class="badge ${badgeData.class}">${badgeData.text}</span></td>
-                            <td data-label="ACCIONES">
-                                <div style="display:flex; gap:6px; align-items:center; flex-wrap:nowrap;">
-                                    <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: var(--color-blue); color: #000; font-weight:700;" onclick="openOrderDetailsModal('${o.id}')">Ver</button>
-                                    <button class="save-btn" style="width:auto; margin:0; padding:4px 8px; font-size:11px; background-color: #00bcd4; color: #000; font-weight:700;" onclick="triggerCreatePlanillaForOrder('${o.id}')" title="Crear Planilla de Trabajo">📋 Planilla</button>
-                                </div>
-                            </td>
-                        `;
-                        collabCompletedBody.appendChild(tr);
-                    });
                 }
             }
 
@@ -2394,6 +2365,57 @@
                     : '';
             }
 
+            // Datos vista solo lectura Colaborador
+            const detailDatetimeCollab = document.getElementById('detail-datetime-collab');
+            if (detailDatetimeCollab) {
+                let dtStr = ord.date ? formatDateWithDayToAR(ord.date) : 'Sin fecha fijada';
+                let timeStr = ord.timeEnd ? `${ord.time} hs a ${ord.timeEnd} hs` : (ord.time ? `${ord.time} hs` : 'Sin horario fijado');
+                detailDatetimeCollab.textContent = `${dtStr} • ${timeStr}`;
+            }
+
+            const detailStatusCollab = document.getElementById('detail-status-collab-badge');
+            if (detailStatusCollab) {
+                const bInfo = getBadgeInfo(ord.status || 'Pendiente');
+                detailStatusCollab.innerHTML = `<span class="badge ${bInfo.class}">${bInfo.text}</span>`;
+            }
+
+            const collabObsWrap = document.getElementById('detail-collab-obs-wrap');
+            const collabObsText = document.getElementById('detail-collab-obs');
+            if (collabObsWrap && collabObsText) {
+                if (ord.observations && ord.observations.trim()) {
+                    collabObsText.textContent = ord.observations.trim();
+                    collabObsWrap.style.display = 'block';
+                } else {
+                    collabObsWrap.style.display = 'none';
+                }
+            }
+
+            const btnCollabModalPlanilla = document.getElementById('btnCollabModalOpenPlanilla');
+            const collabModalPlanillaText = document.getElementById('collab-modal-planilla-text');
+            if (btnCollabModalPlanilla) {
+                const linkedSheet = planillas.find(p => p.orderId === ord.id && p.status === 'Borrador') ||
+                                    planillas.find(p => p.orderId === ord.id);
+                if (linkedSheet && linkedSheet.status === 'Borrador') {
+                    if (collabModalPlanillaText) collabModalPlanillaText.textContent = '✏️ Planilla en Borrador para Revisión';
+                    btnCollabModalPlanilla.textContent = '✏️ Revisar y Editar Planilla';
+                    btnCollabModalPlanilla.style.backgroundColor = '#ff9800';
+                } else if (linkedSheet) {
+                    const codeDisplay = linkedSheet.pdtCode || linkedSheet.id;
+                    if (collabModalPlanillaText) collabModalPlanillaText.textContent = `📋 Planilla Registrada (${codeDisplay})`;
+                    btnCollabModalPlanilla.textContent = '📋 Ver / Editar Planilla';
+                    btnCollabModalPlanilla.style.backgroundColor = 'var(--color-blue)';
+                } else {
+                    if (collabModalPlanillaText) collabModalPlanillaText.textContent = '📋 Planilla de Trabajo Disponible';
+                    btnCollabModalPlanilla.textContent = '📋 + Llenar Planilla de Trabajo';
+                    btnCollabModalPlanilla.style.backgroundColor = 'var(--color-blue)';
+                }
+
+                btnCollabModalPlanilla.onclick = () => {
+                    closeDetailModal();
+                    triggerCreatePlanillaForOrder(ord.id);
+                };
+            }
+
             // Link Maps Admin
             const btnDetailMaps = document.getElementById('btnDetailOpenMaps');
             if (btnDetailMaps) {
@@ -2475,21 +2497,8 @@
             const btnSaveOrderDetail = document.getElementById('btnSaveOrderDetail');
             const btnDetailDelete = document.getElementById('btnDetailDelete');
 
-            if (role === 'Colaborador') {
-                if (statusSelect) statusSelect.disabled = false;
-                if (detailDate) detailDate.disabled = true;
-                if (detailTime) detailTime.disabled = true;
-                if (detailTimeEnd) detailTimeEnd.disabled = true;
-                if (btnSaveOrderDetail) btnSaveOrderDetail.textContent = 'Actualizar Estado';
-                if (btnDetailDelete) btnDetailDelete.style.display = 'none';
-            } else {
-                if (statusSelect) statusSelect.disabled = false;
-                if (detailDate) detailDate.disabled = false;
-                if (detailTime) detailTime.disabled = false;
-                if (detailTimeEnd) detailTimeEnd.disabled = false;
-                if (btnSaveOrderDetail) btnSaveOrderDetail.textContent = 'Guardar Cambios';
-                if (btnDetailDelete) btnDetailDelete.style.display = 'block';
-            }
+            if (btnSaveOrderDetail) btnSaveOrderDetail.textContent = 'Guardar Cambios';
+            if (btnDetailDelete) btnDetailDelete.style.display = role === 'Administrador' ? 'block' : 'none';
 
             // Sincronizar aviso y botón de planilla con el estado real
             const linkedSheetInModal = planillas.find(p => p.orderId === ord.id && p.status === 'Borrador') ||
@@ -2573,6 +2582,7 @@
                 };
             }
 
+            applyRoleVisibility();
             const modal = document.getElementById('modalDetalleOrden');
             if (modal) modal.classList.add('show');
         };
@@ -2582,11 +2592,17 @@
             if (modal) modal.classList.remove('show');
         };
 
-        // Formulario Guardar Cambios Detalle
+        // Formulario Guardar Cambios Detalle (Solo Administrador)
         const formEditarOrden = document.getElementById('formEditarOrden');
         if (formEditarOrden) {
             formEditarOrden.addEventListener('submit', async (e) => {
                 e.preventDefault();
+
+                if (role === 'Colaborador') {
+                    showToast("Los colaboradores no pueden modificar las órdenes. Utilice la Planilla de Trabajo para registrar su labor.", "warning");
+                    closeDetailModal();
+                    return;
+                }
 
                 const orderId = document.getElementById('detail-order-id').textContent.trim();
                 const status = document.getElementById('detail-status').value;
@@ -2673,8 +2689,12 @@
             });
         }
 
-        // Eliminar Orden
+        // Eliminar Orden (Solo Administrador)
         window.handleDeleteOrder = async function(orderId) {
+            if (role !== 'Administrador') {
+                showToast("Solo el Administrador puede eliminar órdenes de trabajo.", "error");
+                return;
+            }
             if (confirm(`¿Estás seguro de que deseas eliminar la orden ${orderId}?`)) {
                 try {
                     // Optimistic
@@ -3107,6 +3127,10 @@
                     renderOrdersFullTable();
                     renderLiveWorkSummary();
                 } catch(e) {}
+            }
+            if (event.data.type === 'ROLE_CHANGED') {
+                applyRoleVisibility();
+                renderOrdersFullTable();
             }
             if (event.data.type === 'CLIENT_UPDATED' || event.data.type === 'CLIENT_DELETED') {
                 try {

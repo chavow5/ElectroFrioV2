@@ -505,7 +505,7 @@
         <div class="content-card">
             <div class="card-header">
                 <h3 class="card-title">
-                    <span>📋</span> Órdenes Asignadas a Mi Nombre
+                    <span>📋</span> Órdenes Activas Asignadas a Mi Nombre
                 </h3>
             </div>
             <div class="table-responsive">
@@ -720,22 +720,32 @@
                 subtextEl.textContent = latest ? `Salida registrada hoy a las ${latest.time} hs` : "No has iniciado jornada hoy";
             }
 
-            // Filtrar órdenes asignadas al colaborador
+            // Filtrar órdenes activas asignadas al colaborador (excluir órdenes pasadas y completadas)
             const myOrders = ordenesTrabajo.filter(o => {
+                if (o.status === 'Completado') return false;
                 if (!o.assignees || !Array.isArray(o.assignees)) return false;
                 return o.assignees.some(a => a && a.toLowerCase().trim() === cleanMyName);
             });
 
-            const myActiveToday = myOrders.filter(o => (o.date === todayISO || o.date === todayAR) && o.status !== 'Completado');
+            const myActiveToday = myOrders.filter(o => (o.date === todayISO || o.date === todayAR));
             document.getElementById('kpiCollabOrdersCount').textContent = `${myActiveToday.length} Asignadas Hoy`;
 
             const tbody = document.getElementById('collabOrdersTableBody');
             if (!tbody) return;
 
             if (myOrders.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:25px;">No tienes órdenes asignadas actualmente.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:25px;">No tienes órdenes activas asignadas actualmente.</td></tr>`;
                 return;
             }
+
+            // Ordenar: hoy primero, luego resto por id/fecha
+            myOrders.sort((a, b) => {
+                const isTodayA = a.date === todayISO || a.date === todayAR;
+                const isTodayB = b.date === todayISO || b.date === todayAR;
+                if (isTodayA && !isTodayB) return -1;
+                if (!isTodayA && isTodayB) return 1;
+                return (b.id || '').localeCompare(a.id || '');
+            });
 
             tbody.innerHTML = '';
             myOrders.slice(0, 10).forEach(o => {
@@ -782,7 +792,7 @@
 
         // 9. ESCUCHAR ACTUALIZACIONES DESDE OTRAS PESTAÑAS O EL APP SHELL
         window.addEventListener('message', (event) => {
-            if (event.data && ['ORDER_UPDATED', 'FICHAJE_UPDATED', 'COLLABORATOR_UPDATED', 'CLIENT_UPDATED', 'ROLE_CHANGED'].includes(event.data.type)) {
+            if (event.data && ['ORDER_UPDATED', 'ORDER_COMPLETED', 'FICHAJE_UPDATED', 'COLLABORATOR_UPDATED', 'CLIENT_UPDATED', 'ROLE_CHANGED'].includes(event.data.type)) {
                 updateDashboardUI();
             }
         });
